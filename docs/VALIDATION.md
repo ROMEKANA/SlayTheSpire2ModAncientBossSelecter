@@ -20,3 +20,19 @@ Still pending: change next-run preference to73 while closed and verify old saved
 The owner report also revealed mojibake in Japanese dotnet build/test output. The C# compiler's production result and our ASCII stage markers are still readable, and this was not a production build failure. Build and contract-test commands now run with scoped UTF-8 console/pipeline encodings, restoring the prior settings on success/failure. Keep the accepted setup workflow. Do not try to repair the already-corrupted old text or require reinstall solely for this log fix.
 
 Regression verification for the script fix: a native child process emits Japanese UTF-8 text while the parent initially uses ASCII; assert correct decoded text and captured file, then assert encoding restoration after success and an injected exception. Existing setup tests also check native-command failure propagation and installation preservation. These are agent-run PowerShell checks, not owner-side verification of the corrected Japanese logs.
+
+## 0.1.0 next-run preference separation, reviewed 2026-11-18 (Asia/Tokyo)
+
+Source: second owner-uploaded selectmod-probe.txt. Raw SHA-256: `5ECDC2C385CCC0BE23EBA7C4FCD280515F30458CAA670BD01369F34752308B70`. This report repeats successful reviewed-reference checks, 26 independent tests, the production build (zero warnings/errors) and installation. New runtime evidence is:
+
+| UTC timestamp | Event | Conclusion |
+| --- | --- | --- |
+| 2026-11-17 19:21:17 | RUN_LOADED schema=1 value=42 | The saved run retains its original value after the preference update |
+| 2026-11-17 19:21:33 | CHOICE_READY schema=1 value=73 | The new choice reads the changed next-run preference |
+| 2026-11-17 19:21:38 | RUN_CREATED schema=1 value=73 | A newly created run captures the changed value |
+
+These events are 2026-11-18 04:21 JST. They complete the planned 42/73 separation check at the recorded hooks. No further repetition of that check is required to start solo feature implementation. This does not establish a reload of the new73 run, a full-game completion, visual UI acceptance or network synchronization.
+
+Japanese compiler output is readable in this second report, including the successful production build and independent-fixture warnings. This provides owner-side evidence for the scoped native UTF-8 capture correction. The warnings belong to the independent contract fixture; the production build reports zero warnings and zero errors.
+
+The earlier pending preference test and unverified corrected-log statements describe the first report and are superseded by this follow-up. Real multiplayer acceptance remains deferred until the weekend; the prototype's multiplayer gates stay enabled. Ascension and encounter gameplay effects remain unimplemented and untested. Next work is the independent ascension feature in solo, preserving the now-observed run-owned settings and the accepted setup workflow. Raw reports remain outside Git.

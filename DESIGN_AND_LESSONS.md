@@ -1,6 +1,6 @@
 # SelectMOD: initial design and lessons
 
-Updated: 2026-11-18 (Asia/Tokyo). Status: 0.1.0 solo settings probe implemented; independent checks pass; owner report confirms actual-reference build, installation and value42 create/restart/load hooks. Broader gameplay and multiplayer acceptance remain pending.
+Updated: 2026-11-18 (Asia/Tokyo). Status: 0.1.0 solo settings probe implemented; independent checks pass; owner reports confirm actual-reference build/install, value42 create/restart/load and old42/new73 preference separation. Broader gameplay and multiplayer acceptance remain pending.
 
 Read [AGENTS.md](AGENTS.md) and [STS2_MODDING.md](STS2_MODDING.md) before implementation. The owner's current status and eventual commands belong in the Japanese [README.md](README.md). Detailed external-source evidence lives in [TECHNICAL_RESEARCH.md](TECHNICAL_RESEARCH.md); its research results are inherited records, not checks rerun during this documentation task.
 
@@ -175,3 +175,9 @@ Verification: production source linked against minimal independently written con
 The owner supplied a 0.1.0 probe report with a successful real-reference build/install, two INITIALIZED sessions, CHOICE_READY and RUN_CREATED value42, then RUN_LOADED value42 after restart. See [docs/VALIDATION.md](docs/VALIDATION.md) for source identity and exact limits. This establishes a narrower success than a full gameplay or network matrix. Preserve the working setup/model path instead of redesigning it.
 
 The report's Japanese dotnet output was corrupted while ASCII stage markers and runtime fields were intact. Scope UTF-8 console/pipeline encodings around the native SDK commands, restore prior encodings in finally, and keep nonzero exit handling in the same action. Regression uses a real native UTF-8 emitter plus success/failure restoration checks. No gameplay code or save schema changes are needed for this correction. Next solo acceptance is old saved value42 versus next-run preference73; real multiplayer remains deferred to the weekend.
+
+## 17. Next-run preference separation confirmed (2026-11-18)
+
+The follow-up owner report shows RUN_LOADED=42, then CHOICE_READY=73 and RUN_CREATED=73 in the later session. The planned old-run/new-preference separation is now observed against the real game. Japanese compiler text is also readable after the scoped UTF-8 correction. Exact evidence and limits are in [docs/VALIDATION.md](docs/VALIDATION.md).
+
+Retain the standard SavedProperty model and established installation workflow. Do not ask the owner to repeat the completed probe before starting solo feature work. Next implementation is independent ascension configuration using run-owned values, with explicit standard-versus-all-OFF mode and an audited early binding to the actual manager. This evidence does not confirm any ascension gameplay effect, a reload of the73 run, full run completion or multiplayer synchronization. Multiplayer gates remain until separate acceptance.

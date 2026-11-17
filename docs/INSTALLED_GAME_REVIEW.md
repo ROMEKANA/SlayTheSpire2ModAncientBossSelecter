@@ -57,3 +57,32 @@ The first collector omitted SavedProperties implementation, full saved-room DTOs
 Export report v2 now includes these supporting types, corrects SerializableAct to SerializableActModel, raises the default cap to 2500, and warns explicitly if search evidence is still truncated. Target source bodies remain independent of that search cap. The same read-only script command produces the follow-up report; it preserves prior successful output and existing path/tool setup.
 
 No gameplay code, game-referenced compilation or runtime acceptance is claimed by this review. Do not commit the raw report or generated proprietary source.
+
+## Report v2 follow-up (2026-11-18)
+
+The owner supplied report v2, collected 2026-11-17 18:29:31 UTC. SHA-256: `84343E80438811D84B789124D5E938A1A95F79E3C08CF1F278D27CFBF6738EB3`. Game/dependency hashes and Steam Build ID match the first report. All 1586 search matches are included (cap 2500), and the requested-type-not-found section is empty. This completes the broad static collection needed for the initial settings prototype; do not request another broad export merely to begin it. Search coverage still is not a semantic proof of all runtime routes.
+
+The earlier section records what was unresolved in v1; the following observations supersede those specific evidence gaps.
+
+| v2 source section | Confirmed contract | Implementation consequence |
+| --- | --- | --- |
+| SavedProperties, report line 19676 | FromInternal accepts int, bool, string, int[], enum, enum[], ModelId, SerializableCard and List<SerializableCard>. Unsupported non-null values throw. Null values are warned about and omitted | Use registered scalar fields for schema/mode/mask. A bounded canonical JSON string is a viable representation for Act rules; arbitrary rule DTOs, string[] and List<ModelId> are not directly supported |
+| SavedProperties.Serialize/Deserialize | Writes and reads each supported storage category, including strings and integer arrays. Category property counts use 8 bits | Keep the small configuration model well within per-category counts. Do not reinterpret the 8-bit property count as a string-length bound |
+| SavedProperties.FillInternal | Sets known named properties by reflection; unknown properties can be ignored and absent values do not populate fields | Use explicit invalid/uninitialized defaults for required configuration and validate after restoration. Missing schema/mask must not silently become a valid all-OFF configuration |
+| ModelIdSerializationCache, line 12354 | Discovers SavedProperty attributes from model types, sorts properties by attribute order then ordinal name, and maps names to numeric network IDs | Declare real SavedProperty properties. Never insert arbitrary names into Props and assume they have a network ID. Keep names stable and use a schema for interpretation changes |
+| ModelIdSerializationCache.Init | Calls ContentSorter for model IDs and includes relevant gameplay model/property names in its hash | Preserve this standard mechanism. Hash equality does not replace validation of our settings/schema; do not infer that field type/value compatibility is comprehensively covered by the hash |
+| PacketWriter.WriteString / PacketReader.ReadString, line 13039 and its reader section | UTF-8 byte length is written as an int, followed by the encoded bytes | Bound our encoded rules before sending and after receiving; the final small payload limit must be tested with the real transport rather than guessed from property counts |
+| SerializableRun; ClientLoadJoinResponseMessage, line 11982 | Run packet serialization carries both Acts and Modifiers; the load-join response serializes the entire run | The standard saved-configuration and resolved-encounter data are carried to a joining load client. No separate configuration transfer is justified merely because the later begin-loaded-run message is empty |
+| SerializableActModel, line 20305; SerializableRoomSet, line 20384 | Packet serialization includes room state and optional primary boss, second boss and ancient IDs with matching readers | Standard persistence of resolved encounters is also a network contract, not only a JSON/local-save contract |
+| ModManager, line 4478; ReflectionHelper, line 4360 | Mod initializer runs before the assembly is appended to the mod's assembly list and marked Loaded. ReflectionHelper caches types from loaded mods | Do not eagerly populate ModelDb/serialization/type-discovery caches inside our initializer. Install hooks there and verify model/property discovery later, after loading |
+| NetMessageBus, line 13855 | Handler registration is separate from message numeric-ID resolution. Serialization uses message.ToId and deserialization uses MessageTypes. Handler exceptions are logged and caught | RegisterMessageHandler alone is not proof that a new message can traverse the wire. A throwing validation handler alone is not proof that the run has been stopped |
+
+### Prototype contract selected from this evidence
+
+Start with one self-owned settings Modifier and registered scalar properties, with a distinct schema sentinel, independent-mode flag and 10-bit ascension mask. Use an explicit bounded string encoding for Act rules when adding encounter configuration, rather than unsupported SavedProperty collection types. Normalize and validate complete values atomically; default/unset schema is invalid, while an explicitly configured zero mask is valid all-OFF independent mode.
+
+Keep the standard modifier selection/change/start/save/load paths as the first data transport. Verify clone, JSON and actual packet round trips against the game assembly before implementing an additional transfer protocol. Do not introduce a new INetMessage just because generic handler registration exists; numeric message registration has not been established by that method.
+
+The first prototype should prove discovery and property-cache membership after loading, solo setting/save/reload, then host edit → guest applied snapshot → start/load with deliberately different local defaults. Add an explicit start gate for invalid state and block unverified multiplayer feature use. Neither a successful source export nor the game's normal model hash establishes this acceptance.
+
+There is no additional user-side source collection action required now. Gameplay implementation, actual-reference build and live solo/multiplayer checks remain separate next steps. The raw reports and extracted source remain outside Git.

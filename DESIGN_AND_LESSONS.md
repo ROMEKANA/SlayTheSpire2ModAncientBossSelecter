@@ -145,3 +145,15 @@ The owner supplied a successful Windows PowerShell 5.1 static report. Review and
 Confirmed start messages serialize modifier Props, all Acts generate rooms up front, the outer generation loop adds A10's final second boss, public room access/setters exist, and standard saved room state retains all three selected encounter IDs. Reuse those mechanisms before adding custom configuration packets or duplicate encounter persistence. OnRunLoaded occurs after deprecated-room validation, so it is not an early validation gate. OnRunCreated precedes the observed initial ascension application but does not establish timing for every possible caller.
 
 Collector v1 missed supporting SavedProperties/packet/loader bodies and truncated search contexts. Collector v2 adds the inventory-confirmed types and raises the default cap with an explicit warning. Follow up on those contracts before implementing custom serialization or asserting multiplayer safety. The raw report remains outside Git; this evidence does not approve a game build or prove SelectMOD features.
+
+## 14. Supporting contracts confirmed in report v2 (2026-11-18)
+
+The second report includes all 1586 text matches and every requested target. See the v2 follow-up in [docs/INSTALLED_GAME_REVIEW.md](docs/INSTALLED_GAME_REVIEW.md) for exact evidence identity and source sections. Broad collection is sufficient for the initial prototype; do not ask the owner for another broad export at this stage.
+
+Use registered int/bool/string properties rather than arbitrary rule collections. Keep a required schema sentinel distinct from valid all-OFF independent mode, because SavedProperties can omit nulls, ignore unknown properties and leave missing values at defaults. Serialize Act rules as a bounded canonical string when those rules are added, with complete validation after restoration. Strings and integer arrays have observed packet readers/writers; their actual values and full custom-model round trips remain to be tested.
+
+The loader appends a MOD's assembly and marks it loaded after calling its initializer. ReflectionHelper caches loaded MOD types, so avoid eager model/type/serialization-cache discovery there. Add hooks in the initializer and confirm own model/property membership at the normal later initialization stage. Standard property IDs and gameplay hash checks stay enabled.
+
+SerializableRun and the load-join response carry both modifiers and saved rooms. Reuse that transport first. NetMessageBus handler registration does not establish a custom numeric wire ID, and its exception catch means throwing inside a handler is not a sufficient start/stop gate. Resolve custom verification transport only if the minimal standard-path experiment shows it is necessary.
+
+Next concrete implementation scope: one settings Modifier, supported scalar fields, solo clone/start/save/reload checks, and a minimal host/guest setting comparison. Encounter manipulation and ten-effect gameplay acceptance follow that proof. No live runtime result is claimed yet.

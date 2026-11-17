@@ -13,10 +13,20 @@ public static class EncounterCatalog
     public static EncounterAct[] Build(IReadOnlyList<ActModel> acts, UnlockState unlocks)
     {
         if (acts.Count is < 1 or > EncounterRules.MaxActs) throw new InvalidOperationException("SelectMOD: 対応範囲外のAct数です。");
-        return acts.Select((act, index) => new EncounterAct(index, act,
-            act.AllBossEncounters.DistinctBy(m => Key(m)).OrderBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray(),
-            act.GetUnlockedAncients(unlocks).Concat(index > 0 ? unlocks.SharedAncients : Enumerable.Empty<AncientEventModel>())
-                .DistinctBy(m => Key(m)).OrderBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray())).ToArray();
+        return acts.Select((act, index) => BuildAt(index, act)).ToArray();
+    }
+    public static EncounterAct[] BuildOptions() => ModelDb.ActsByIndex
+        .Select((variants, index) => BuildAt(index, variants.First())).ToArray();
+    private static EncounterAct BuildAt(int index, ActModel actual)
+    {
+        // Use the complete index pool, never the seed-selected variant or unlocks.
+        var variants = index < ModelDb.ActsByIndex.Count ? ModelDb.ActsByIndex[index] : new[] { actual };
+        return new EncounterAct(index, actual,
+            variants.SelectMany(a => a.AllBossEncounters).DistinctBy(Key)
+                .OrderBy(m => m.GetType().Name switch { "TheKinBoss" => 0, "WaterfallGiantBoss" => 1, _ => 2 })
+                .ThenBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray(),
+            variants.SelectMany(a => a.AllAncients).Concat(index > 0 ? ModelDb.AllSharedAncients : Enumerable.Empty<AncientEventModel>())
+                .DistinctBy(Key).OrderBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray());
     }
     public static void ValidateChoice(EncounterRule[] rules, EncounterAct[] catalog)
     {

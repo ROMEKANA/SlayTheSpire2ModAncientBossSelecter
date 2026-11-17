@@ -39,6 +39,7 @@ namespace MegaCrit.Sts2.Core.Models
         public List<EncounterModel> Bosses { get; set; } = [];
         public List<AncientEventModel> Ancients { get; set; } = [];
         public IEnumerable<EncounterModel> AllBossEncounters => Bosses;
+        public IEnumerable<AncientEventModel> AllAncients => Ancients;
         public IEnumerable<AncientEventModel> GetUnlockedAncients(MegaCrit.Sts2.Core.Unlocks.UnlockState state) => Ancients;
         private MegaCrit.Sts2.Core.Rooms.RoomSet _rooms = new();
         public MegaCrit.Sts2.Core.Rooms.RoomSet GetRoomsDebug() => _rooms;
@@ -48,6 +49,9 @@ namespace MegaCrit.Sts2.Core.Models
     }
     public static class ModelDb
     {
+        public static IReadOnlyList<IReadOnlyList<ActModel>> ActsByIndex { get; set; } = [];
+        public static IEnumerable<AncientEventModel> AllSharedAncients { get; set; } = [];
+
         private static readonly Dictionary<ModelId, AbstractModel> Models = new();
         public static ModelId GetId<T>() => new("MODIFIER", typeof(T).Name);
         public static T Modifier<T>() where T : ModifierModel, new()
@@ -185,6 +189,10 @@ namespace MegaCrit.Sts2.Core.Saves
         public List<MegaCrit.Sts2.Core.Saves.Runs.SerializableActModel> Acts { get; set; } = [];
     }
 }
+namespace MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect
+{
+    public class NCharacterSelectScreen : Godot.Control { }
+}
 // Witness APIs: production must not install any patches or alter their values.
 namespace MegaCrit.Sts2.Core.Entities.Ascension
 {
@@ -200,18 +208,36 @@ namespace Godot
     public class Node
     {
         public List<Node> Children { get; } = []; private Node? Parent;
+        public string Name { get; set; } = "";
         public event Action? TreeExiting;
-        public void AddChild(Node child) { Children.Add(child); child.Parent = this; }
+        public event Action? Ready;
+        public bool IsNodeReady() => true;
+        public IEnumerable<Node> GetChildren() => Children;
+        public void AddChild(Node child) { Children.Add(child); child.Parent = this; Engine.Tree.Added(child); child.Ready?.Invoke(); }
         public void QueueFree() { Parent?.Children.Remove(this); TreeExiting?.Invoke(); }
     }
-    public class SceneTree { public Node Root { get; } = new(); }
+    public class SceneTree { public Node Root { get; } = new(); public event Action<Node>? NodeAdded; public void Added(Node node) => NodeAdded?.Invoke(node); }
+    public class Callable(Action action) { public static Callable From(Action action) => new(action); public void CallDeferred() => action(); }
     public readonly record struct Vector2(float X, float Y);
     public readonly record struct Vector2I(int X, int Y);
     public static class TextServer { public enum AutowrapMode { WordSmart } }
-    public class Control : Node { public enum SizeFlags { ExpandFill } public SizeFlags SizeFlagsHorizontal { get; set; } public Vector2 CustomMinimumSize { get; set; } }
+    public class Control : Node {
+        public enum SizeFlags { ExpandFill }
+        public SizeFlags SizeFlagsHorizontal { get; set; } public SizeFlags SizeFlagsVertical { get; set; }
+        public Vector2 CustomMinimumSize { get; set; }
+        public float AnchorLeft { get; set; } public float AnchorRight { get; set; }
+        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public int ZIndex { get; set; }
+        public bool Visible { get; set; } = true;
+        public bool IsVisibleInTree() => Visible;
+        public event Action? VisibilityChanged;
+        public void ShowForTest() { Visible = true; VisibilityChanged?.Invoke(); }
+        public void AddThemeFontSizeOverride(string name, int size) { }
+        public void AddThemeConstantOverride(string name, int size) { }
+    }
+    public class PanelContainer : Control { } public class MarginContainer : Control { }
     public class VBoxContainer : Control { } public class HBoxContainer : Control { } public class ScrollContainer : Control { }
     public class Label : Control { public string Text { get; set; } = ""; public TextServer.AutowrapMode AutowrapMode { get; set; } }
-    public class OptionButton : Control { public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; }
+    public class OptionButton : Control { public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
     public class Button : Control { public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
     public class AcceptDialog : Control
     {

@@ -63,7 +63,7 @@ try {
         $settings | Add-Member -NotePropertyName SelectionDialog -NotePropertyValue $SelectionDialog -Force
     }
     if (!($settings.SelectionDialog -is [bool])) { throw 'SelectionDialog must be true or false. Config retained.' }
-    # Retain old AscensionMask for history, but 0.3 never reads or applies it.
+    # Retain old AscensionMask for history, but encounter-selector releases never read or apply it.
     $stage = Join-Path $configDir ('staged-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
     $sourceDll = Join-Path $repo 'src/SelectMOD/bin/Release/net9.0/SelectMOD.dll'
@@ -97,9 +97,9 @@ try {
         if ($hadConfig) { [IO.File]::Replace($tempConfig, $config, $backupConfig) }
         else { [IO.File]::Move($tempConfig, $config) }
         $configWritten = $true
-        $trace.Add('INSTALLED version=0.3.0 solo boss/ancient selector; independent ascension disabled')
-        Write-Host 'Installed SelectMOD 0.3.0. Start a NEW normal solo run; choose boss/ancient encounters immediately before run creation. Multiplayer is blocked.'
-        Write-Host "Pre-run selection dialog: $($settings.SelectionDialog). Independent ascension is disabled; standard cumulative ascension is preserved."
+        $trace.Add('INSTALLED version=0.4.0 solo boss/ancient selector; independent ascension disabled')
+        Write-Host 'Installed SelectMOD 0.4.0. Choose boss/ancient encounters in the upper-right of the character selection screen, then start a NEW solo run. Multiplayer is blocked.'
+        Write-Host "Character-screen selection panel: $($settings.SelectionDialog). Independent ascension is disabled; standard cumulative ascension is preserved."
     } catch {
         if ($installStarted -and (Test-Path -LiteralPath $destination)) { Move-Item -LiteralPath $destination -Destination (Join-Path $configDir ('failed-install-' + [guid]::NewGuid().ToString('N'))) }
         if ($previous) { Move-Item -LiteralPath $previous -Destination $destination }

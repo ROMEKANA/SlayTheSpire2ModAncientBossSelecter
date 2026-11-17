@@ -34,12 +34,14 @@ public static class ModEntry
             VerifyReferences();
             // Never touch ModelDb or its caches while the loader is still adding this assembly.
             harmony.PatchAll(typeof(ModEntry).Assembly);
+            EncounterSelectionPanel.Install();
             IsActive = true;
-            WriteLog("INITIALIZED version=0.3.0 solo boss/ancient selector; independent ascension disabled");
+            WriteLog("INITIALIZED version=0.4.0 solo boss/ancient selector; independent ascension disabled");
         }
         catch (Exception e)
         {
             IsActive = false;
+            EncounterSelectionPanel.Uninstall();
             foreach (var method in Harmony.GetAllPatchedMethods().ToArray())
                 harmony.Unpatch(method, HarmonyPatchType.All, Owner);
             WriteLog("INITIALIZATION_FAILED " + e.Message);

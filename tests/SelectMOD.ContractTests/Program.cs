@@ -17,7 +17,6 @@ var checks = 0;
 void Check(bool value, string name) { if (!value) throw new Exception(name); checks++; }
 void Reject(Action action, string name) { try { action(); } catch (InvalidOperationException) { checks++; return; } throw new Exception(name); }
 IEnumerable<T> Descendants<T>(Node root) where T : Node => root.Children.OfType<T>().Concat(root.Children.SelectMany(Descendants<T>));
-AcceptDialog Dialog() => Engine.Tree.Root.Children.OfType<AcceptDialog>().Last();
 var harmony = new Harmony(ModEntry.Owner);
 try
 {
@@ -29,24 +28,46 @@ try
     var ancient2 = ModelDb.Register(new AncientEventModel { Id = new("ANCIENT", "ancient2") });
     var shared = ModelDb.Register(new AncientEventModel { Id = new("ANCIENT", "shared") });
     var acts = Enumerable.Range(0, 3).Select(i => ModelDb.Register(new ActModel { Id = new("ACT", "act" + i), Bosses = [boss1, boss2], Ancients = [ancient1, ancient2] })).ToArray();
-    var player = new Player(); player.UnlockState.SharedAncients.Add(shared);
+    var variantBoss = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "variant-boss") });
+    var lockedAncient = ModelDb.Register(new AncientEventModel { Id = new("ANCIENT", "locked") });
+    var variant = ModelDb.Register(new ActModel { Id = new("ACT", "alternate0"), Bosses = [variantBoss], Ancients = [lockedAncient] });
+    ModelDb.ActsByIndex = [new ActModel[] { acts[0], variant }, new ActModel[] { acts[1] }, new ActModel[] { acts[2] }];
+    ModelDb.AllSharedAncients = [shared];
+    var player = new Player();
     var catalog = EncounterCatalog.Build(acts, player.UnlockState);
     Check(!catalog[0].Ancients.Contains(shared) && catalog[1].Ancients.Contains(shared), "shared eligibility");
+    Check(catalog[0].Bosses.Contains(variantBoss) && catalog[0].Ancients.Contains(lockedAncient), "alternate/locked candidates missing");
+    var alternateCatalog = EncounterCatalog.Build([variant, acts[1], acts[2]], new());
+    Check(catalog[0].Bosses.SequenceEqual(alternateCatalog[0].Bosses) && catalog[0].Ancients.SequenceEqual(alternateCatalog[0].Ancients), "catalog changed with seed variant/unlocks");
+    ModelDb.ActsByIndex = [new ActModel[] { variant, acts[0] }, new ActModel[] { acts[1] }, new ActModel[] { acts[2] }];
+    Check(catalog[0].Bosses.SequenceEqual(EncounterCatalog.BuildOptions()[0].Bosses), "variant enumeration changed order");
+    EncounterSelectionPanel.Install();
+    var screen = new MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen();
+    Engine.Tree.Root.AddChild(screen);
+    var panel = Descendants<PanelContainer>(screen).Single();
+    Check(panel.AnchorLeft > 0.5f && panel.AnchorRight > 0.9f, "panel not upper-right");
+    EncounterSelectionPanel.Attach(screen);
+    Check(Descendants<PanelContainer>(screen).Count() == 1, "panel attached twice");
+    var options = Descendants<OptionButton>(screen).ToArray();
+    Check(options.Length == 6 && options.All(o => o.Items[0] == "ランダム"), "per-Act controls/random default missing");
+    // Real user-selection signals, no confirm dialog. Capture the stable IDs immediately.
+    options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
+    options[1].UserSelect(Array.IndexOf(catalog[0].Ancients, lockedAncient) + 1);
+    Check(EncounterDraft.Get(0) == (EncounterCatalog.Key(variantBoss), EncounterCatalog.Key(lockedAncient)), "selection signal lost selected IDs");
+    var otherScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen();
+    Engine.Tree.Root.AddChild(otherScreen);
+    Check(Descendants<OptionButton>(otherScreen).First().Selected == options[0].Selected, "new screen lost next-run choice");
+    var otherOptions = Descendants<OptionButton>(otherScreen).ToArray();
+    otherOptions[0].UserSelect(0);
+    screen.ShowForTest();
+    Check(options[0].Selected == 0, "cached screen displayed stale choice");
+    options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
     var game = new NGame();
-    var start = game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
-    Check(!start.IsCompleted && game.Calls == 0 && game.Manager.GameRngDraws == 0, "start did not wait asynchronously before original/RNG");
-    var duplicate = game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
-    Check(ReferenceEquals(start, duplicate), "duplicate start created second attempt");
-    var dialog = Dialog();
-    var options = Descendants<OptionButton>(dialog).ToArray();
-    Check(options.Length == 6, "missing per-Act controls");
-    options[0].Select(2); options[1].Select(2); // Act1 boss2 and ancient2.
-    dialog.Confirm(); dialog.Confirm();
-    var state = await start.WaitAsync(TimeSpan.FromSeconds(10));
+    var state = await game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(game.Calls == 1, "original start invoked more than once");
     Check(state.IsCustomGame && state.AscensionLevel == 10, "changed run classification/cumulative ascension");
-    Check(state.Acts[0].BossEncounterForTest() == boss2, "selected boss not applied");
-    Check(state.Acts[0].GetRoomsDebug().Ancient == ancient2, "selected ancient not applied");
+    Check(state.Acts[0].BossEncounterForTest() == variantBoss, "selected alternate boss not applied");
+    Check(state.Acts[0].GetRoomsDebug().Ancient == lockedAncient, "selected locked ancient not applied");
     Check(state.Acts[1].GetRoomsDebug().Boss == boss1, "unselected Act changed");
     Check(game.Manager.GameRngDraws == 7, "selection consumed additional game RNG");
     var settings = state.Modifiers.OfType<SelectEncounterSettings>().Single();
@@ -67,12 +88,12 @@ try
     var loaded = RunState.FromSerializable(save);
     var loadManager = new RunManager();
     await loadManager.SetUpSavedSingleplayer(loaded, save);
-    Check(loadManager.GameRngDraws == 0 && loaded.Acts[0].GetRoomsDebug().Boss == boss2, "load rerolled or lost selected result");
+    Check(loadManager.GameRngDraws == 0 && loaded.Acts[0].GetRoomsDebug().Boss == variantBoss, "load rerolled or lost selected result");
     var before = RunState.Restores;
     save.Acts[0].SerializableRooms.BossId = boss1.Id;
     Reject(() => RunState.FromSerializable(save), "mismatched saved result accepted");
     Check(RunState.Restores == before, "invalid save reached original restoration");
-    save.Acts[0].SerializableRooms.BossId = boss2.Id;
+    save.Acts[0].SerializableRooms.BossId = variantBoss.Id;
     game.Manager.CleanUp(); loadManager.CleanUp();
     // Standard second boss equals selected primary: swap, with no new draw.
     var original = new ResolvedEncounter(2, EncounterCatalog.Key(acts[2]), EncounterCatalog.Key(boss1), EncounterCatalog.Key(boss2), EncounterCatalog.Key(ancient1));
@@ -84,30 +105,26 @@ try
     Reject(() => EncounterRules.Decode<EncounterRule>("broken"), "broken JSON accepted");
     Reject(() => EncounterRules.Decode<EncounterRule>(new string('x', 32769)), "oversized JSON accepted");
     Reject(() => EncounterRules.Validate([new(1, original.Act, null, null)]), "invalid Act index accepted");
-    // Closing the pre-run window is an explicit unchanged start, not a hung task.
+    // Changing next-run UI state must not alter the active run's frozen values.
+    var frozenRules = settings.SelectEncounterRules;
+    Descendants<Button>(screen).Single().Press();
+    Check(EncounterDraft.Get(0) == (null, null) && options.All(o => o.Selected == 0), "reset did not update draft and controls");
+    Check(settings.SelectEncounterRules == frozenRules, "next-run edit changed saved rules");
     var vanillaGame = new NGame();
-    var vanilla = vanillaGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
-    Dialog().Close();
-    var vanillaState = await vanilla.WaitAsync(TimeSpan.FromSeconds(10));
-    Check(!vanillaState.IsCustomGame && vanillaState.Modifiers.Count == 0 && vanillaState.AscensionLevel == 10, "unchanged start altered standard run");
+    var vanillaState = await vanillaGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
+    Check(!vanillaState.IsCustomGame && vanillaState.Modifiers.Count == 0 && vanillaState.AscensionLevel == 10, "random start altered standard run");
     vanillaGame.Manager.CleanUp();
-    // External scene teardown must abort, never leave the start waiting forever.
-    var abortedGame = new NGame();
-    var aborted = abortedGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false);
-    Dialog().QueueFree();
-    try { await aborted.WaitAsync(TimeSpan.FromSeconds(10)); throw new Exception("destroyed dialog started a run"); }
-    catch (OperationCanceledException) { checks++; }
-    Check(abortedGame.Calls == 0, "destroyed dialog reached original");
-    var retried = abortedGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false);
-    Dialog().Close();
-    await retried.WaitAsync(TimeSpan.FromSeconds(10));
-    Check(abortedGame.Calls == 1, "aborted attempt left stale start association");
-    abortedGame.Manager.CleanUp();
+    EncounterDraft.Set(0, true, EncounterCatalog.Key(variantBoss));
+    var dailyGame = new NGame();
+    var daily = await dailyGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 0, DateTimeOffset.UtcNow);
+    Check(daily.Modifiers.Count == 0 && !daily.IsCustomGame, "daily start captured normal draft");
+    dailyGame.Manager.CleanUp();
     var disabledGame = new NGame();
     File.WriteAllText(Path.Combine(dir, "config.json"), "{\"ProbeValue\":73,\"SelectionDialog\":false}");
     var disabled = await disabledGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false);
-    Check(!disabled.IsCustomGame && !Engine.Tree.Root.Children.OfType<AcceptDialog>().Any(), "disabled dialog still shown");
+    Check(!disabled.IsCustomGame && disabled.Modifiers.Count == 0, "disabled panel still applied draft");
     disabledGame.Manager.CleanUp();
+    EncounterDraft.Reset();
     Reject(() => ProbeRules.ValidateSelection([new SelectAscensionSettings()], true, GameMode.Standard, 1), "retired ascension accepted");
     var retired = new SerializableRun { IsCustomGame = true, Modifiers = [new() { Id = ModelDb.GetId<SelectAscensionSettings>(), Value = new SelectAscensionSettings { SelectAscensionSchema = 1, SelectAscensionMask = 10 } }] };
     Reject(() => RunState.FromSerializable(retired), "retired save silently converted");
@@ -120,10 +137,11 @@ try
     Check(host.Starts == 0 && !host.Ready, "multiplayer not blocked");
     var log = File.ReadAllText(Path.Combine(dir, "selectmod.log"));
     Check(log.Contains("START_COMPLETED") && log.Contains("ENCOUNTER_RUN_LOADED"), "progress diagnostics missing");
-    Console.WriteLine($"PASS: {checks} independent selector/UI-task/Harmony checks. Actual game build, UI and gameplay acceptance pending.");
+    Console.WriteLine($"PASS: {checks} independent selector/panel-signal/Harmony checks. Actual game build, UI and gameplay acceptance pending.");
 }
 finally
 {
+    EncounterSelectionPanel.Uninstall();
     foreach (var method in Harmony.GetAllPatchedMethods().ToArray()) harmony.Unpatch(method, HarmonyPatchType.All, ModEntry.Owner);
     Environment.SetEnvironmentVariable("SELECTMOD_CONFIG_DIR", null); Directory.Delete(dir, true);
 }

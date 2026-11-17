@@ -32,6 +32,31 @@ try {
     Assert-True ((ConvertTo-SelectModIoPath '\\server\share\file.cs') -eq '\\?\UNC\server\share\file.cs') 'UNC extended-path conversion failed'
     Assert-True ((ConvertTo-SelectModIoPath '\\?\C:\deep\file.cs') -eq '\\?\C:\deep\file.cs') 'Extended path was prefixed twice'
     Assert-True ((ConvertTo-SelectModIoPath '/tmp/file.cs') -eq '/tmp/file.cs') 'Non-Windows path was changed'
+    # Native child emits UTF-8 while the parent initially uses a legacy encoding.
+    # Build the Japanese sample from code points to keep this PS5.1 test file ASCII.
+    $sample = [string][char]0x65e5 + [char]0x672c + [char]0x8a9e
+    $childSource = '[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); [Console]::WriteLine("' + $sample + '")'
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($childSource))
+    $shellExe = (Get-Process -Id $PID).Path
+    $originalConsole = [Console]::OutputEncoding
+    $originalPipeline = $OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.Encoding]::ASCII
+        $OutputEncoding = [Text.Encoding]::ASCII
+        $encodingLog = Join-Path $fixture 'native-output.txt'
+        $nativeText = @(Invoke-SelectModUtf8 {
+            & $shellExe -NoProfile -EncodedCommand $encoded | Tee-Object -FilePath $encodingLog
+            if ($LASTEXITCODE -ne 0) { throw 'Native UTF-8 emitter failed' }
+        })
+        Assert-True (($nativeText -join '') -eq $sample) 'Native UTF-8 text was decoded incorrectly'
+        Assert-True ([IO.File]::ReadAllText($encodingLog).Trim() -eq $sample) 'Captured native UTF-8 text was corrupted'
+        Assert-True ([Console]::OutputEncoding.CodePage -eq 20127 -and $OutputEncoding.CodePage -eq 20127) 'Encoding was not restored after success'
+        Expect-Failure { Invoke-SelectModUtf8 { throw 'encoding failure fixture' } } 'encoding failure fixture'
+        Assert-True ([Console]::OutputEncoding.CodePage -eq 20127 -and $OutputEncoding.CodePage -eq 20127) 'Encoding was not restored after failure'
+    } finally {
+        [Console]::OutputEncoding = $originalConsole
+        $OutputEncoding = $originalPipeline
+    }
     $parsed = Get-SelectModPaths -PathsFile $paths
     Assert-True ($parsed.Game -eq $game) 'Path containing spaces was not preserved'
     Assert-True ((Get-SelectModGameAssembly -Game $game) -eq (Join-Path $data 'sts2.dll')) 'Assembly resolution failed'
@@ -104,7 +129,7 @@ $global:LASTEXITCODE = 0
     & (Join-Path $fixture 'scripts/Build.ps1') -ProjectPath $project -GameDataDir $data
     $global:selectModFakeBuildExit = 9
     Expect-Failure { & (Join-Path $fixture 'scripts/Build.ps1') -ProjectPath $project -GameDataDir $data } 'build failed'
-    Write-Host 'PASS: parsing, Windows path conversion, >260-character generated source, report/backup, export failures, changed DLL, read-only scope and build exit propagation (fixtures only).'
+    Write-Host 'PASS: parsing, native UTF-8 capture/restoration, Windows path conversion, >260-character generated source, report/backup, export failures, changed DLL, read-only scope and build exit propagation (fixtures only).'
 } finally {
     Remove-Item Function:/dotnet -ErrorAction SilentlyContinue
     Remove-Variable selectModFakeBuildExit -Scope Global -ErrorAction SilentlyContinue

@@ -1,6 +1,6 @@
 # SelectMOD: initial design and lessons
 
-Updated: 2026-11-18 (Asia/Tokyo). Status: 0.1.0 solo settings probe implemented; independent checks pass, actual-reference build and game acceptance pending.
+Updated: 2026-11-18 (Asia/Tokyo). Status: 0.1.0 solo settings probe implemented; independent checks pass; owner report confirms actual-reference build, installation and value42 create/restart/load hooks. Broader gameplay and multiplayer acceptance remain pending.
 
 Read [AGENTS.md](AGENTS.md) and [STS2_MODDING.md](STS2_MODDING.md) before implementation. The owner's current status and eventual commands belong in the Japanese [README.md](README.md). Detailed external-source evidence lives in [TECHNICAL_RESEARCH.md](TECHNICAL_RESEARCH.md); its research results are inherited records, not checks rerun during this documentation task.
 
@@ -169,3 +169,9 @@ All multiplayer starts/loads are blocked while this probe is installed: lobby gu
 Setup.ps1 validates reviewed references, runs independent tests, builds the actual production project, stages only the declared three files, preserves custom config paths/preferences and installs with rollback. Existing releases/config backups remain outside the loader tree. A generated installed SelectMOD.paths.txt locates custom runtime config without committing personal paths. Export-ProbeReport.ps1 collects bounded setup/build/runtime evidence; Disable.ps1 moves the installation outside mods without modifying saves. No save-routing or save migration is added. A probe run contains a custom modifier and requires this MOD to resume.
 
 Verification: production source linked against minimal independently written contract types and test-only Harmony, plus temporary PowerShell installer scenarios. These are explicitly not actual-game compilation, game SavedProperties round trips, Windows runtime acceptance or multiplayer tests. The owner next runs the prepared setup and solo create/save/restart/load experiment. Initial value42, change next-run preference to73 while closed, confirm old run42/new choice73. Gameplay effects and encounter selectors follow that proof rather than shipping an untested larger patch set.
+
+## 16. Owner-side build and restart/load evidence (2026-11-18)
+
+The owner supplied a 0.1.0 probe report with a successful real-reference build/install, two INITIALIZED sessions, CHOICE_READY and RUN_CREATED value42, then RUN_LOADED value42 after restart. See [docs/VALIDATION.md](docs/VALIDATION.md) for source identity and exact limits. This establishes a narrower success than a full gameplay or network matrix. Preserve the working setup/model path instead of redesigning it.
+
+The report's Japanese dotnet output was corrupted while ASCII stage markers and runtime fields were intact. Scope UTF-8 console/pipeline encodings around the native SDK commands, restore prior encodings in finally, and keep nonzero exit handling in the same action. Regression uses a real native UTF-8 emitter plus success/failure restoration checks. No gameplay code or save schema changes are needed for this correction. Next solo acceptance is old saved value42 versus next-run preference73; real multiplayer remains deferred to the weekend.

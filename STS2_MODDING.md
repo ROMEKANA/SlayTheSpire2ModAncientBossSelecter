@@ -4,7 +4,7 @@ Read this together with the root AGENTS.md. This file contains STS2-specific evi
 
 ## SelectMOD transfer and current contracts
 
-Transferred on 2026-11-18 from the completed UnifiedVanillaSave reference project. Historical phrases such as "this utility" and "this project" below refer to that reference MOD, not to an implemented SelectMOD. Its fixture checks, game version and owner success report are historical evidence only. SelectMOD now has a 0.1.0 solo persistence-probe source, csproj, manifest and setup scripts. Independent fixture checks exist; actual-game build and runtime acceptance remain pending.
+Transferred on 2026-11-18 from the completed UnifiedVanillaSave reference project. Historical phrases such as "this utility" and "this project" below refer to that reference MOD, not to an implemented SelectMOD. Its fixture checks, game version and owner success report are historical evidence only. SelectMOD now has a 0.1.0 solo persistence-probe source, csproj, manifest and setup scripts. Independent fixture checks exist; the owner report now confirms real-reference build/install and value42 creation/restart-load hooks. Broader gameplay and multiplayer acceptance remain pending.
 
 Read root DESIGN_AND_LESSONS.md for SelectMOD's initial proposal and TECHNICAL_RESEARCH.md for inherited version-pinned external-source research. The following are SelectMOD-specific requirements:
 
@@ -17,7 +17,7 @@ Read root DESIGN_AND_LESSONS.md for SelectMOD's initial proposal and TECHNICAL_R
 - Audit HasLevel and direct ascension comparisons for every supported effect. Bind the run mask before first use; all-OFF independent mode differs from standard cumulative mode. An OR-only patch cannot disable a cumulative effect.
 - Do not transfer save-routing patches, audit fingerprints, MOD identities, old acceptance or old exporter target lists into SelectMOD. The case study below is retained to explain the lessons, not as a patch list for this project.
 
-An owner-supplied static source report now identifies Steam Build ID 26660232 and net9.0 and confirms several start/save/generation contracts; see docs/INSTALLED_GAME_REVIEW.md. Game-referenced compilation and multiplayer guarantees remain unverified. Use scripts/Export-GameSources.ps1 and follow the evidence plan in DESIGN_AND_LESSONS.md before implementing integration hooks. Validate features in solo first, but investigate a minimal multiplayer configuration/save round trip early; block multiplayer in unverified intermediate builds.
+An owner-supplied static source report now identifies Steam Build ID 26660232 and net9.0 and confirms several start/save/generation contracts; see docs/INSTALLED_GAME_REVIEW.md. Owner-side game-referenced compilation is confirmed for the probe; multiplayer guarantees remain unverified. Use scripts/Export-GameSources.ps1 and follow the evidence plan in DESIGN_AND_LESSONS.md before implementing integration hooks. Validate features in solo first, but investigate a minimal multiplayer configuration/save round trip early; block multiplayer in unverified intermediate builds.
 
 ## Scope and confidence
 
@@ -91,3 +91,5 @@ The temporary reference folder has been removed after script extraction. Revisit
 Windows PowerShell file enumeration can succeed while .NET Framework ReadAllLines fails on a generated filename beyond MAX_PATH. Use short scratch paths plus explicit extended-path reads; do not infer a missing game file or weaken execution policy. Publish report staging on the destination volume even when scratch storage is elsewhere.
 
 Report v2 confirms SavedProperty scalar/string/int-array packet support, while arbitrary DTO/list properties are unsupported. Required properties need explicit post-restore validation because null/absent/unknown fields can be omitted or ignored. Declare actual stable property names before normal ModelIdSerializationCache initialization. ModManager appends the assembly to its loaded list after invoking the initializer, so avoid eagerly freezing model/type discovery during that initializer. Standard saved-room IDs travel inside SerializableRun's load-join packet. NetMessageBus handler registration alone does not register a numeric message ID, and handler exceptions are caught rather than serving as a reliable run-start barrier. Full details: docs/INSTALLED_GAME_REVIEW.md, report v2 follow-up.
+
+Windows PowerShell 5.1 can decode native dotnet UTF-8 output with a legacy console encoding before Tee-Object sees it. A UTF-8 export file alone cannot repair that already-corrupted text. Scope native-command console/pipeline encodings to UTF-8 and restore them afterward; keep existing nonzero-exit checks and the established setup flow.

@@ -40,8 +40,10 @@ try {
     }
     $trace.Add('REFERENCES_MATCH_REVIEWED_SOURCE')
     if (!(Get-Command dotnet -ErrorAction SilentlyContinue)) { throw 'Install .NET 9 SDK: winget install --id Microsoft.DotNet.SDK.9 --exact' }
-    & dotnet run --project (Join-Path $repo 'tests/SelectMOD.ContractTests') -c Release | Tee-Object -FilePath (Join-Path $local 'contract-output.txt')
-    if ($LASTEXITCODE -ne 0) { throw 'Independent contract tests failed.' }
+    Invoke-SelectModUtf8 {
+        & dotnet run --project (Join-Path $repo 'tests/SelectMOD.ContractTests') -c Release | Tee-Object -FilePath (Join-Path $local 'contract-output.txt')
+        if ($LASTEXITCODE -ne 0) { throw 'Independent contract tests failed.' }
+    }
     $trace.Add('CONTRACT_TESTS_PASSED (not game acceptance)')
     & (Join-Path $PSScriptRoot 'Build.ps1') -GameDataDir $data
     $trace.Add('ACTUAL_REFERENCE_BUILD_PASSED (not game acceptance)')

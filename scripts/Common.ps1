@@ -1,5 +1,21 @@
 Set-StrictMode -Version Latest
 
+function Invoke-SelectModUtf8 {
+    param([Parameter(Mandatory)][scriptblock]$Action)
+    # Windows PowerShell 5.1 otherwise decodes UTF-8 dotnet output using its
+    # legacy console code page before Tee-Object can save the text correctly.
+    $consoleEncoding = [Console]::OutputEncoding
+    $pipelineEncoding = $OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        $OutputEncoding = [Text.UTF8Encoding]::new($false)
+        & $Action
+    } finally {
+        [Console]::OutputEncoding = $consoleEncoding
+        $OutputEncoding = $pipelineEncoding
+    }
+}
+
 function ConvertTo-SelectModIoPath {
     param([Parameter(Mandatory)][string]$Path)
     # Explicit extended paths avoid legacy MAX_PATH handling in Windows PowerShell's

@@ -3,7 +3,7 @@
   "name": "SelectMOD",
   "author": "ROMEKANA",
   "description": "通常のソロ開始直前にボス・エンシェントを選択。変更時はカスタム扱い。個別アセンション停止中。",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "has_dll": true,
   "has_pck": false,
   "affects_gameplay": true,

@@ -20,10 +20,11 @@ namespace MegaCrit.Sts2.Core.Models
     public abstract class AbstractModel
     {
         public ModelId Id { get; set; } = new("fixture", "unset");
-        public virtual MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry);
     }
     public abstract class ModifierModel : AbstractModel
     {
+        public virtual MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry);
+
         public virtual MegaCrit.Sts2.Core.Localization.LocString Description => new("fixture", "description");
         public ModifierModel ToMutable() => (ModifierModel)MemberwiseClone();
         protected virtual void AfterRunCreated(RunState state) { }
@@ -32,10 +33,12 @@ namespace MegaCrit.Sts2.Core.Models
         public void OnRunLoaded(RunState state) => AfterRunLoaded(state);
         public static ModifierModel FromSerializable(SerializedModifier saved) => saved.Value;
     }
-    public class EncounterModel : AbstractModel { }
-    public class AncientEventModel : AbstractModel { }
+    public class EncounterModel : AbstractModel { public MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry); }
+    public class AncientEventModel : AbstractModel { public MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry); }
     public class ActModel : AbstractModel
     {
+        public virtual MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry);
+
         public List<EncounterModel> Bosses { get; set; } = [];
         public List<AncientEventModel> Ancients { get; set; } = [];
         public IEnumerable<EncounterModel> AllBossEncounters => Bosses;

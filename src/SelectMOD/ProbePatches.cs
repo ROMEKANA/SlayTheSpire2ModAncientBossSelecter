@@ -14,7 +14,7 @@ internal static class NewLobbyGuard
     {
         try
         {
-            if (__instance.NetService.Type != NetGameType.Singleplayer) throw new InvalidOperationException("SelectMOD 0.4.0はソロ専用です。");
+            if (__instance.NetService.Type != NetGameType.Singleplayer) throw new InvalidOperationException("SelectMOD 0.4.1はソロ専用です。");
             ProbeRules.ValidateSelection(__1, __instance.IsCustom, __instance.GameMode, __instance.Players.Count);
             return true;
         }
@@ -27,7 +27,7 @@ internal static class LoadLobbyGuard
     private static bool Prefix(LoadRunLobby __instance)
     {
         if (__instance.NetService.Type == NetGameType.Singleplayer || !__instance.IsAboutToBeginGame()) return true;
-        __instance.SetReady(false); ModEntry.Reject("SelectMOD 0.4.0はソロ専用です。"); return false;
+        __instance.SetReady(false); ModEntry.Reject("SelectMOD 0.4.1はソロ専用です。"); return false;
     }
 }
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpNewMultiplayer))]

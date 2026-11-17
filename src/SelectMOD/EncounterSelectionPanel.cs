@@ -58,8 +58,8 @@ public static class EncounterSelectionPanel
             foreach (var act in catalog)
             {
                 list.AddChild(new Label { Text = $"Act {act.Index + 1}" });
-                AddChoice(list, "主ボス", act.Index, true, act.Bosses, controls, refresh, UpdateStatus);
-                AddChoice(list, "エンシェント", act.Index, false, act.Ancients, controls, refresh, UpdateStatus);
+                AddChoice(list, "主ボス", act.Index, true, act.Bosses, candidate => candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
+                AddChoice(list, "エンシェント", act.Index, false, act.Ancients, candidate => candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
             }
             var reset = new Button { Text = "全てランダムに戻す", CustomMinimumSize = new Vector2(0, 44) };
             reset.Pressed += () => { EncounterDraft.Reset(); foreach (var control in controls) control.Select(0); UpdateStatus(); };
@@ -78,7 +78,7 @@ public static class EncounterSelectionPanel
         if (node is Control control) control.AddThemeFontSizeOverride("font_size", 23);
         foreach (var child in node.GetChildren()) SetFonts(child);
     }
-    private static void AddChoice<T>(VBoxContainer list, string label, int index, bool boss, T[] candidates,
+    private static void AddChoice<T>(VBoxContainer list, string label, int index, bool boss, T[] candidates, Func<T, string> title,
         List<OptionButton> controls, List<Action> refresh, Action update) where T : AbstractModel
     {
         var row = new HBoxContainer();
@@ -86,7 +86,7 @@ public static class EncounterSelectionPanel
         var choice = new OptionButton { FitToLongestItem = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 44) };
         choice.GetPopup().AddThemeFontSizeOverride("font_size", 23);
         choice.AddItem("ランダム");
-        foreach (var candidate in candidates) choice.AddItem(candidate.Title.GetFormattedText());
+        foreach (var candidate in candidates) choice.AddItem(title(candidate));
         void Sync()
         {
             var current = EncounterDraft.Get(index); var key = boss ? current.Boss : current.Ancient;

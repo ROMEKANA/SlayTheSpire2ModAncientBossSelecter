@@ -41,17 +41,41 @@ namespace MegaCrit.Sts2.Core.Runs
         public bool IsCustomGame { get; set; } = true;
         public GameMode GameMode { get; set; }
         public List<int> Players { get; set; } = [1];
+        public int AscensionLevel { get; set; }
+        public List<MegaCrit.Sts2.Core.Models.ActModel> Acts { get; set; } = [new(), new(), new()];
+        public List<MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel> InitialEffects { get; } = [];
         public static int Restores;
         [MethodImpl(MethodImplOptions.NoInlining)] public static RunState FromSerializable(SerializableRun save) { Restores++; return new(); }
     }
     public class RunManager
     {
+        private RunState? State;
         public int Starts;
-        [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewSingleplayer(RunState state, bool save = true, DateTimeOffset? dailyTime = null) { Starts++; }
-        [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedSingleplayer(RunState state, SerializableRun save) { Starts++; return Task.CompletedTask; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpReplay(RunState state) { Starts++; }
+        public bool IsInProgress => State != null;
+        public MegaCrit.Sts2.Core.Entities.Ascension.AscensionManager AscensionManager { get; private set; } = new(GameMode.Standard, 0);
+        [MethodImpl(MethodImplOptions.NoInlining)] private void InitializeShared()
+        {
+            AscensionManager = new(State!.GameMode, State.AscensionLevel);
+            // A helper query during shared initialization must already see the snapshot.
+            EarlyEffect = HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.Poverty);
+        }
+        public bool EarlyEffect;
+        [MethodImpl(MethodImplOptions.NoInlining)] public bool HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel level) => IsInProgress && AscensionManager.HasLevel(level);
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewSingleplayer(RunState state, bool save = true, DateTimeOffset? dailyTime = null)
+        {
+            State = state; InitializeShared(); Starts++;
+            foreach (var effect in new[] { MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt, MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.AscendersBane })
+                if (AscensionManager.HasLevel(effect)) state.InitialEffects.Add(effect);
+        }
+        public Task? PendingLoad;
+        [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedSingleplayer(RunState state, SerializableRun save) { State = state; InitializeShared(); Starts++; return PendingLoad ?? Task.CompletedTask; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void GenerateRooms() { State!.Acts.Last().GetRoomsDebug().HasSecondBoss = AscensionManager.HasLevel(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.DoubleBoss); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void CleanUp(bool graceful = true) { State = null; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby lobby, bool save = true) { Starts++; }
         [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.LoadRunLobby lobby) { Starts++; return Task.CompletedTask; }
     }
+
 }
 namespace MegaCrit.Sts2.Core.Multiplayer.Game
 {
@@ -68,6 +92,8 @@ namespace MegaCrit.Sts2.Core.Multiplayer.Game.Lobby
         public List<int> Players { get; } = [1];
         public int Starts;
         public bool Ready;
+        public int Ascension = 10;
+        public void SyncAscensionChange(int value) => Ascension = value;
         public void SetReady(bool value) => Ready = value;
         [MethodImpl(MethodImplOptions.NoInlining)] public void BeginRunForAllPlayers(string seed, List<ModifierModel> modifiers) { Starts++; }
     }
@@ -97,6 +123,7 @@ namespace MegaCrit.Sts2.Core.Saves
         public bool IsCustomGame { get; set; } = true;
         public GameMode GameMode { get; set; }
         public List<int> Players { get; set; } = [1];
+        public int Ascension { get; set; }
     }
 }
 namespace Godot
@@ -110,5 +137,25 @@ namespace Godot
         public string Title { get; set; } = ""; public string DialogText { get; set; } = "";
         public event Action? Confirmed; public event Action? CloseRequested;
         public void PopupCentered() { }
+    }
+}
+
+namespace MegaCrit.Sts2.Core.Entities.Ascension
+{
+    public enum AscensionLevel { None, SwarmingElites, WearyTraveler, Poverty, TightBelt, AscendersBane, Inflation, Scarcity, ToughEnemies, DeadlyEnemies, DoubleBoss }
+    public class AscensionManager(MegaCrit.Sts2.Core.Runs.GameMode mode, int level)
+    {
+        public int BaseLevel = level;
+        [MethodImpl(MethodImplOptions.NoInlining)] public bool HasLevel(AscensionLevel effect) => (int)effect >= 1 && (int)effect <= BaseLevel;
+    }
+}
+namespace MegaCrit.Sts2.Core.Odds { public static class CardRarityOdds { public static float regularCommonOdds = 0.6f; } }
+namespace MegaCrit.Sts2.Core.Rooms { public class RoomSet { public bool HasSecondBoss { get; set; } } }
+namespace MegaCrit.Sts2.Core.Models
+{
+    public class ActModel
+    {
+        private readonly MegaCrit.Sts2.Core.Rooms.RoomSet _rooms = new();
+        public MegaCrit.Sts2.Core.Rooms.RoomSet GetRoomsDebug() => _rooms;
     }
 }

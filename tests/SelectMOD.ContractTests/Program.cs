@@ -18,7 +18,7 @@ void Check(bool value, string name) { if (!value) throw new Exception(name); che
 void Reject(Action action, string name) { try { action(); } catch (InvalidOperationException) { checks++; return; } throw new Exception(name); }
 void Configure(int value) => File.WriteAllText(Path.Combine(dir, "config.json"), JsonSerializer.Serialize(new { ProbeValue = value }));
 void Activate(bool value) => typeof(ModEntry).GetProperty(nameof(ModEntry.IsActive))!.SetValue(null, value);
-var harmony = new Harmony("SelectMOD.ContractTests");
+var harmony = new Harmony(ModEntry.Owner);
 try
 {
     // Warm the independent fixture methods before applying real test-only Harmony.
@@ -27,7 +27,7 @@ try
     harmony.PatchAll(typeof(ModEntry).Assembly);
     Activate(true);
     Configure(42);
-    var probe = (SelectSettingsProbe)new NCustomRunModifiersList().GetAllModifiers().Single();
+    var probe = (SelectSettingsProbe)new NCustomRunModifiersList().GetAllModifiers().OfType<SelectSettingsProbe>().Single();
     Check(probe.SelectProbeSchema == 1 && probe.SelectProbeValue == 42, "choice snapshot");
     Check(probe.Title.GetFormattedText() == "SelectMOD 設定保存テスト", "owned text");
     Check(new MegaCrit.Sts2.Core.Localization.LocString("original", "key").GetFormattedText() == "original:key", "unrelated text");
@@ -49,7 +49,7 @@ try
     var loadedState = new RunState { Modifiers = [restored] };
     restored.OnRunLoaded(loadedState);
     Check(restored.SelectProbeValue == 42, "saved value wins over next-run preference");
-    Check(((SelectSettingsProbe)new NCustomRunModifiersList().GetAllModifiers().Single()).SelectProbeValue == 73, "next-run preference");
+    Check(((SelectSettingsProbe)new NCustomRunModifiersList().GetAllModifiers().OfType<SelectSettingsProbe>().Single()).SelectProbeValue == 73, "next-run preference");
     var saved = new SerializableRun { Modifiers = [new() { Id = ModelDb.GetId<SelectSettingsProbe>(), Value = restored }] };
     RunState.FromSerializable(saved);
     Check(RunState.Restores == 1, "valid restore");
@@ -75,6 +75,7 @@ try
     Reject(() => manager.SetUpNewMultiplayer(state, lobby), "received multiplayer setup accepted");
     Reject(() => manager.SetUpSavedMultiplayer(state, load), "received multiplayer load accepted");
     Check(manager.Starts == 1, "multiplayer reached original");
+    AscensionContractTests.Run(dir, Check, Reject);
     Activate(false);
     Reject(() => ProbeRules.ValidateRun(state), "inactive run accepted");
     Check(!new NCustomRunModifiersList().GetAllModifiers().Any(), "inactive choice exposed");
@@ -84,7 +85,7 @@ try
 }
 finally
 {
-    foreach (var method in Harmony.GetAllPatchedMethods().ToArray()) harmony.Unpatch(method, HarmonyPatchType.All, "SelectMOD.ContractTests");
+    foreach (var method in Harmony.GetAllPatchedMethods().ToArray()) harmony.Unpatch(method, HarmonyPatchType.All, ModEntry.Owner);
     Environment.SetEnvironmentVariable("SELECTMOD_CONFIG_DIR", null);
     Directory.Delete(dir, recursive: true);
 }

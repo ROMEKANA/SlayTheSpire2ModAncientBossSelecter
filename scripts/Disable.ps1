@@ -14,5 +14,5 @@ New-Item -ItemType Directory -Path $config -Force | Out-Null
 $guard = [IO.File]::Open((Join-Path $config 'setup.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
 try {
     Move-Item -LiteralPath $source -Destination (Join-Path $config ('disabled-mod-' + [guid]::NewGuid().ToString('N')))
-    Write-Host 'SelectMOD moved outside mods. Saves/config are unchanged. A saved probe run still requires SelectMOD to resume.'
+    Write-Host 'SelectMOD moved outside mods. Saves/config are unchanged. Saved runs containing SelectMOD modifiers still require SelectMOD to resume.'
 } finally { $guard.Dispose() }

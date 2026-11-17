@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([string]$PathsFile, [ValidateRange(0, 1000000)][int]$ProbeValue = 42)
+param(
+    [string]$PathsFile,
+    [ValidateRange(0, 1000000)][int]$ProbeValue = 42,
+    [ValidateRange(1, 10)][int[]]$Ascensions
+)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
 $repo = Split-Path $PSScriptRoot -Parent
@@ -55,6 +59,14 @@ try {
     $settings = if (Test-Path -LiteralPath $config -PathType Leaf) { Get-Content -LiteralPath $config -Raw | ConvertFrom-Json } else { [pscustomobject]@{ ProbeValue = 42 } }
     if ($PSBoundParameters.ContainsKey('ProbeValue')) { $settings | Add-Member -NotePropertyName ProbeValue -NotePropertyValue $ProbeValue -Force }
     if (!$settings.PSObject.Properties['ProbeValue'] -or !($settings.ProbeValue -is [int] -or $settings.ProbeValue -is [long]) -or $settings.ProbeValue -lt 0 -or $settings.ProbeValue -gt 1000000) { throw 'Invalid config ProbeValue. Expected integer 0..1000000; config retained.' }
+    if ($PSBoundParameters.ContainsKey('Ascensions')) {
+        $mask = 0
+        foreach ($level in $Ascensions) { $mask = $mask -bor (1 -shl ($level - 1)) }
+        $settings | Add-Member -NotePropertyName AscensionMask -NotePropertyValue $mask -Force
+    } elseif (!$settings.PSObject.Properties['AscensionMask']) {
+        $settings | Add-Member -NotePropertyName AscensionMask -NotePropertyValue 0
+    }
+    if (!($settings.AscensionMask -is [int] -or $settings.AscensionMask -is [long]) -or $settings.AscensionMask -lt 0 -or $settings.AscensionMask -gt 1023) { throw 'Invalid config AscensionMask. Expected integer 0..1023; config retained.' }
     $stage = Join-Path $configDir ('staged-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
     $sourceDll = Join-Path $repo 'src/SelectMOD/bin/Release/net9.0/SelectMOD.dll'
@@ -88,9 +100,9 @@ try {
         if ($hadConfig) { [IO.File]::Replace($tempConfig, $config, $backupConfig) }
         else { [IO.File]::Move($tempConfig, $config) }
         $configWritten = $true
-        $trace.Add('INSTALLED version=0.1.0 solo-only settings probe')
-        Write-Host 'Installed SelectMOD 0.1.0. No gameplay effects yet. Multiplayer is blocked while installed.'
-        Write-Host 'Choose SelectMOD in a SOLO Standard custom run, save/quit and resume; export the probe log afterward.'
+        $trace.Add('INSTALLED version=0.2.0 solo-only independent ascension')
+        Write-Host 'Installed SelectMOD 0.2.0. Select the independent ascension modifier in a SOLO Standard custom run. Multiplayer remains blocked.'
+        Write-Host "Next-run ascension mask: $($settings.AscensionMask) (unlisted effects OFF). Saved runs retain their own values."
     } catch {
         if ($installStarted -and (Test-Path -LiteralPath $destination)) { Move-Item -LiteralPath $destination -Destination (Join-Path $configDir ('failed-install-' + [guid]::NewGuid().ToString('N'))) }
         if ($previous) { Move-Item -LiteralPath $previous -Destination $destination }

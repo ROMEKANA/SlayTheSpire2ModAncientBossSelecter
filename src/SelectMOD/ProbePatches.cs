@@ -18,7 +18,11 @@ internal static class ProbeListPatch
         probe.SelectProbeSchema = ProbeSettings.CurrentSchema;
         probe.SelectProbeValue = ModEntry.ReadNextValue();
         ModEntry.WriteLog($"CHOICE_READY schema={probe.SelectProbeSchema} value={probe.SelectProbeValue}");
-        __result = __result.Concat(new[] { probe });
+        var ascension = (SelectAscensionSettings)ModelDb.Modifier<SelectAscensionSettings>().ToMutable();
+        ascension.SelectAscensionSchema = AscensionSettings.CurrentSchema;
+        ascension.SelectAscensionMask = ModEntry.ReadNextAscensionMask();
+        ModEntry.WriteLog($"ASCENSION_CHOICE mask={ascension.SelectAscensionMask} enabled={ascension.Snapshot.Describe()}");
+        __result = __result.Concat(new ModifierModel[] { probe, ascension });
     }
 }
 
@@ -32,6 +36,7 @@ internal static class NewLobbyGuard
             if (__instance.NetService.Type != NetGameType.Singleplayer)
                 throw new InvalidOperationException("このSelectMOD試作ではマルチ開始を停止しています。ソロで試してください。");
             ProbeRules.ValidateSelection(__1, __instance.IsCustom, __instance.GameMode, __instance.Players.Count);
+            if (__1.OfType<SelectAscensionSettings>().Any()) __instance.SyncAscensionChange(0);
             return true;
         }
         catch (Exception e)
@@ -61,25 +66,54 @@ internal static class LoadLobbyGuard
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpNewMultiplayer))]
 internal static class NewMultiplayerGuard
 {
-    private static void Prefix() => throw new InvalidOperationException("SelectMOD 0.1.0: マルチは未検証のため無効です。");
+    private static void Prefix() => throw new InvalidOperationException("SelectMOD 0.2.0: マルチは未検証のため無効です。");
 }
 
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpSavedMultiplayer))]
 internal static class SavedMultiplayerGuard
 {
-    private static void Prefix() => throw new InvalidOperationException("SelectMOD 0.1.0: マルチ再開は未検証のため無効です。");
+    private static void Prefix() => throw new InvalidOperationException("SelectMOD 0.2.0: マルチ再開は未検証のため無効です。");
 }
 
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpNewSingleplayer))]
 internal static class SoloNewGuard
 {
-    private static void Prefix(RunState __0) => ProbeRules.ValidateRun(__0);
+    private static void Prefix(RunManager __instance, RunState __0, out object? __state)
+    {
+        __state = null;
+        ProbeRules.ValidateRun(__0);
+        __state = AscensionRuntime.Prepare(__instance, __0);
+    }
+    private static Exception? Finalizer(RunManager __instance, object? __state, Exception? __exception)
+    {
+        if (__state != null && __exception != null) AscensionRuntime.Release(__instance, __state);
+        return __exception;
+    }
 }
 
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpSavedSingleplayer))]
 internal static class SoloLoadGuard
 {
-    private static void Prefix(RunState __0) => ProbeRules.ValidateRun(__0);
+    private static void Prefix(RunManager __instance, RunState __0, out object? __state)
+    {
+        __state = null;
+        ProbeRules.ValidateRun(__0);
+        __state = AscensionRuntime.Prepare(__instance, __0);
+    }
+    private static void Postfix(RunManager __instance, object? __state, ref Task __result)
+    {
+        if (__state != null) __result = ObserveLoad(__result, __instance, __state);
+    }
+    private static async Task ObserveLoad(Task setup, RunManager manager, object binding)
+    {
+        try { await setup; }
+        catch { AscensionRuntime.Release(manager, binding); throw; }
+    }
+    private static Exception? Finalizer(RunManager __instance, object? __state, Exception? __exception)
+    {
+        if (__state != null && __exception != null) AscensionRuntime.Release(__instance, __state);
+        return __exception;
+    }
 }
 
 [HarmonyPatch(typeof(RunState), nameof(RunState.FromSerializable))]
@@ -89,8 +123,11 @@ internal static class SavedSettingsGuard
     {
         // Validate before restoring players/rooms or incrementing reload counters.
         var id = ModelDb.GetId<SelectSettingsProbe>();
-        var saved = __0.Modifiers.Where(m => m.Id == id).ToArray();
+        var ascensionId = ModelDb.GetId<SelectAscensionSettings>();
+        var saved = __0.Modifiers.Where(m => m.Id == id || m.Id == ascensionId).ToArray();
         if (saved.Length == 0) return;
+        if (saved.Any(m => m.Id == ascensionId) && __0.Ascension != 0)
+            throw new InvalidOperationException("SelectMOD: 保存された個別モードの累積値がA0ではありません。");
         ProbeRules.ValidateSelection(saved.Select(ModifierModel.FromSerializable),
             __0.IsCustomGame, __0.GameMode, __0.Players.Count);
     }

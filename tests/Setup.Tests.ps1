@@ -47,11 +47,16 @@ try {
     Assert-Setup (@(Get-ChildItem $install).Count -eq 3) 'Unexpected payloads (reference/test DLL leakage)'
     Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).ProbeValue -eq 42) 'Default config missing'
     Assert-Setup ([IO.File]::ReadAllText((Join-Path $install 'SelectMOD.paths.txt')) -eq $configDir) 'Custom config directory lost'
-    & $setup -PathsFile $paths -ProbeValue 73
+    & $setup -PathsFile $paths -ProbeValue 73 -Ascensions @(2, 4)
     Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).ProbeValue -eq 73) 'Requested config not applied'
     Assert-Setup (@(Get-ChildItem $configDir -Directory -Filter 'previous-mod-*').Count -eq 1) 'Previous release not preserved outside mods'
     & $setup -PathsFile $paths
     Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).ProbeValue -eq 73) 'Existing preference reset'
+    Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).AscensionMask -eq 10) 'Ascension preference was not retained'
+    & $setup -PathsFile $paths -Ascensions @()
+    Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).AscensionMask -eq 0) 'Explicit all-OFF mask failed'
+    & $setup -PathsFile $paths -Ascensions @(2, 2, 4)
+    Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).AscensionMask -eq 10) 'Independent ascension selection failed'
     $beforeConfig = [IO.File]::ReadAllText($config)
     $beforeDll = (Get-FileHash (Join-Path $install 'SelectMOD.dll')).Hash
     $global:selectModBuildFails = $true
@@ -83,7 +88,7 @@ try {
     & (Join-Path $fixture 'scripts/Disable.ps1') -PathsFile $paths
     Assert-Setup (!(Test-Path $install)) 'Disable left MOD under loader tree'
     Assert-Setup ([IO.File]::ReadAllText($config) -eq $beforeConfig) 'Disable changed config'
-    Write-Host 'PASS: setup first install, custom paths, preference retention, update backup, failed build, install rollback, unknown-build refusal and save isolation (fixtures only).'
+    Write-Host 'PASS: setup first install, custom paths, ascension selection/all-OFF/retention, preference retention, update backup, failed build, install rollback, unknown-build refusal and save isolation (fixtures only).'
 } finally {
     Remove-Item Function:/dotnet -ErrorAction SilentlyContinue
     Remove-Item Function:/Copy-Item -ErrorAction SilentlyContinue

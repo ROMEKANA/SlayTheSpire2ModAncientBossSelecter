@@ -4,7 +4,7 @@ Read this together with the root AGENTS.md. This file contains STS2-specific evi
 
 ## SelectMOD transfer and current contracts
 
-Transferred on 2026-11-18 from the completed UnifiedVanillaSave reference project. Historical phrases such as "this utility" and "this project" below refer to that reference MOD, not to an implemented SelectMOD. Its fixture checks, game version and owner success report are historical evidence only. SelectMOD currently has documentation, not its own source, scripts, manifest, build or runtime acceptance.
+Transferred on 2026-11-18 from the completed UnifiedVanillaSave reference project. Historical phrases such as "this utility" and "this project" below refer to that reference MOD, not to an implemented SelectMOD. Its fixture checks, game version and owner success report are historical evidence only. SelectMOD currently has documentation and diagnostic/build-entry scripts, but no gameplay source, csproj, manifest, real-game build or runtime acceptance.
 
 Read root DESIGN_AND_LESSONS.md for SelectMOD's initial proposal and TECHNICAL_RESEARCH.md for inherited version-pinned external-source research. The following are SelectMOD-specific requirements:
 
@@ -17,7 +17,7 @@ Read root DESIGN_AND_LESSONS.md for SelectMOD's initial proposal and TECHNICAL_R
 - Audit HasLevel and direct ascension comparisons for every supported effect. Bind the run mask before first use; all-OFF independent mode differs from standard cumulative mode. An OR-only patch cannot disable a cumulative effect.
 - Do not transfer save-routing patches, audit fingerprints, MOD identities, old acceptance or old exporter target lists into SelectMOD. The case study below is retained to explain the lessons, not as a patch list for this project.
 
-No current game API, DLL fingerprint, build target or multiplayer guarantee has been confirmed by this documentation task. Follow the source/metadata collection plan in DESIGN_AND_LESSONS.md before implementing integration hooks.
+No current game API, DLL fingerprint, build target or multiplayer guarantee has been confirmed by this documentation task. Use scripts/Export-GameSources.ps1 and follow the evidence plan in DESIGN_AND_LESSONS.md before implementing integration hooks. Validate features in solo first, but investigate a minimal multiplayer configuration/save round trip early; block multiplayer in unverified intermediate builds.
 
 ## Scope and confidence
 
@@ -85,3 +85,5 @@ Keep pure metadata/policy tests and shared patch-code tests independent of the g
 Test default and explicit nullable-state inputs, warm callers, last-profile selection, all affected path categories, real read/write round trips where available, global-state preservation, old-namespace retention, conflicts and owner-scoped cleanup. Fixture success, actual-game compilation and owner acceptance are different outcomes.
 
 For a new STS2 repository, copy AGENTS.md and this file to its root, merge with existing rules, and have Codex create project-specific scripts/contracts. Do not transfer this MOD's identity, reviewed DLL fingerprints, audit config, local paths, user data or backup payloads as ready-made approvals. This repository's detailed RESEARCH/VALIDATION notes are historical project evidence, not additional portable instruction files.
+
+The temporary reference folder has been removed after script extraction. Revisit https://github.com/ROMEKANA/SlayTheSpire2ModSaveManeged when needed; do not use historical paths below as current SelectMOD commands. Exported source stays under ignored local/; successful exports remove their temporary project and failed exports retain it for diagnosis.

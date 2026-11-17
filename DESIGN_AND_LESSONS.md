@@ -10,7 +10,7 @@ Build an independent Slay the Spire 2 gameplay MOD, working title SelectMOD:
 
 - Select, ban or restrict eligible ancient and boss encounters per Act.
 - Enable ascension effects independently, including A1 OFF with A2 ON.
-- Support multiplayer from the first implementation, with host-owned configuration and matching effective rules on every participant.
+- Keep multiplayer as a delivery goal and architectural constraint, with host-owned configuration and matching effective rules on every participant. Validate gameplay in solo first; do not enable unverified multiplayer behavior.
 - Restore the original run rules and already resolved encounters after save/load.
 - Use the standard loader and game-bundled Harmony. No runtime dependency on BaseLib, RitsuLib, ModConfig, UCR or another MOD.
 
@@ -24,7 +24,7 @@ The completed reference project is UnifiedVanillaSave. Its 0.3.0 owner success r
 
 The existing technical research records version-pinned external source investigation. It favors standard ModifierModel/SavedProperty persistence and synchronization, identifies ascension and generation hook candidates, and documents where reference MODs use BaseLib. None of those signatures has been verified against a current game DLL in this task.
 
-Before choosing patches, obtain a read-only source/metadata report identifying the real game build, DLL hash/MVID, tool version, exact signatures, callers and initialization order. Cover new/load lobbies, Modifier serialization/clone, first ascension use, Act generation, map construction and room restoration. Prepare one export script when implementation begins; do not require manual hash approval flags or copy the old save utility's exporter targets.
+Before choosing patches, obtain a read-only source/metadata report identifying the real game build, DLL hash (and MVID when available), tool version, exact signatures, callers and initialization order. Cover new/load lobbies, Modifier serialization/clone, first ascension use, Act generation, map construction and room restoration. Use scripts/Export-GameSources.ps1 to collect static evidence; do not require manual hash approval flags or copy the old save utility's exporter targets.
 
 ## 3. State ownership
 
@@ -94,9 +94,9 @@ Required hook failure, conflicts affecting effective rules, snapshot mismatch or
 ## 9. Implementation order and acceptance
 
 1. Audit the installed game contracts and lifecycle; record exact evidence and the supported version.
-2. Build a minimal independent loader/Modifier proof: host edit → guest apply → start → save → fresh-process load. Prove complete round trips before adding the feature UI.
+2. Build a minimal independent loader/Modifier proof: first solo start/save/fresh-process load, then host edit/guest apply/start/load with one minimal setting. Check networking feasibility before expanding feature implementation.
 3. Add pure rule validation/canonicalization and the verified freeze/start mechanism. Test stale revisions, duplicate messages, cancellation, timeout and membership changes where applicable.
-4. Add encounter rules and independent ascension with focused boundary tests. Verify initialization timing, no repeated initial effects, A10 and RNG behavior.
+4. Add encounter rules and independent ascension with focused solo boundary and resume tests. Verify initialization timing, no repeated initial effects, A10 and RNG behavior. Keep the same immutable run contract; explicitly block multiplayer while synchronization is unverified.
 5. Provide one Windows Setup entry point and a separate read-only diagnostics exporter. Build against actual game references; stage only declared MOD payloads and preserve the previous installation on failure.
 6. Run separate-process multiplayer acceptance, including different local defaults, both host roles, more than one guest, Act transitions, save/load, reconnect policy, mismatched versions and consecutive same-seed runs.
 
@@ -116,3 +116,16 @@ Real acceptance must compare actual ancient/boss IDs, map display, effective asc
 | Owner-reported success had a bounded scope | Keep acceptance evidence precise and do not inherit old version approvals |
 
 These are transferable lessons, not instructions to add save routing or the old utility's backup machinery to SelectMOD. Add future findings here as: assumption → observed evidence → decision → regression check. There are no SelectMOD-specific runtime failures or successful fixes to record yet.
+
+## 11. Script extraction and staged implementation (2026-11-18)
+
+The owner authorized removing the temporary reference project after extracting useful scripts. Root AGENTS/STS2 notes retain the applicable lessons. Source reference: https://github.com/ROMEKANA/SlayTheSpire2ModSaveManeged ; bundled snapshot remains in repository history at 3181983. Do not depend on the deleted directory.
+
+- scripts/Common.ps1 retains the three-line paths contract and read-only game reference resolution.
+- scripts/Build.ps1 retains reference checks, explicit project targeting, SDK selection and native exit-code handling. It deliberately rejects the missing SelectMOD project and performs no staging or installation. Old save audits, tests, fingerprints and payload identities were not carried over.
+- scripts/Export-GameSources.ps1 adapts the pinned ILSpy workflow, before/after dependency hashes and previous-report preservation. It temporarily decompiles the assembly as a project without building/executing it, collects major target types plus bounded search contexts, and emits local/selectmod-sources.txt. It never reads saves or writes game/config directories. Missing required types, tool failure or changed dependencies preserve the last successful report and retain partial output. Text search, missing optional target names and caller caps must be inspected; this report does not prove exhaustive coverage.
+- tests/Scripts.Tests.ps1 exercises script orchestration using temporary fake dependencies and tools. It is not game/API/decompiler acceptance.
+
+Decision: solo-first feature validation with an early minimal multiplayer persistence/synchronization spike. This isolates gameplay defects without deferring the architectural uncertainty until after a full solo implementation. Multiplayer remains blocked in intermediate prototypes until verified. Actual game source review, feature builds and real-game acceptance are pending.
+
+Validation in this task: PowerShell 7.4.13 parsed and ran fixture tests on Linux. Installed actual ILSpyCmd 9.1.0.7988 under .NET SDK 9.0.321 and ran Export-GameSources.ps1 against a newly compiled independent C# assembly containing four test target types; target extraction and caller report generation succeeded. These checks do not establish Windows execution or current-game compatibility.

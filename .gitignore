@@ -1,0 +1,5 @@
+# Machine paths, private reports, tools and decompiled proprietary source
+/local/
+/artifacts/
+**/bin/
+**/obj/

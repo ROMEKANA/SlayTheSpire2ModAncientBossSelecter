@@ -1,8 +1,0 @@
-**/bin/
-**/obj/
-artifacts/
-local/
-*.dll
-*.pck
-*.pdb
-*.zip

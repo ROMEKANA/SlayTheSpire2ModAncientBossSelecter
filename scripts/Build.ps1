@@ -10,7 +10,7 @@ $repo = Split-Path $PSScriptRoot -Parent
 if (!$ProjectPath) { $ProjectPath = Join-Path $repo 'src/SelectMOD/SelectMOD.csproj' }
 $ProjectPath = [IO.Path]::GetFullPath($ProjectPath)
 if (!(Test-Path -LiteralPath $ProjectPath -PathType Leaf)) {
-    throw 'SelectMOD project is not implemented yet. Build.ps1 is a reusable build entry point, not a working MOD or installer.'
+    throw 'SelectMOD project was not found. Update the checkout or specify an existing -ProjectPath.'
 }
 if (!$GameDataDir) {
     $paths = Get-SelectModPaths -PathsFile $PathsFile
@@ -25,7 +25,9 @@ Push-Location $repo
 try {
     & dotnet --version
     if ($LASTEXITCODE -ne 0) { throw 'SDK selection failed. Check global.json and installed SDKs.' }
-    & dotnet build $ProjectPath -c Release "-p:GameDataDir=$GameDataDir" "-p:GameAssemblyPath=$(Join-Path $GameDataDir 'sts2.dll')" "-p:HarmonyAssemblyPath=$(Join-Path $GameDataDir '0Harmony.dll')" "-p:GodotAssemblyPath=$(Join-Path $GameDataDir 'GodotSharp.dll')"
+    $local = Join-Path $repo 'local'
+    New-Item -ItemType Directory -Path $local -Force | Out-Null
+    & dotnet build $ProjectPath -c Release "-p:GameDataDir=$GameDataDir" "-p:GameAssemblyPath=$(Join-Path $GameDataDir 'sts2.dll')" "-p:HarmonyAssemblyPath=$(Join-Path $GameDataDir '0Harmony.dll')" "-p:GodotAssemblyPath=$(Join-Path $GameDataDir 'GodotSharp.dll')" | Tee-Object -FilePath (Join-Path $local 'build-output.txt')
     if ($LASTEXITCODE -ne 0) { throw 'Game-referenced build failed. No installation was performed.' }
     Write-Host 'Build completed. No installation or distribution staging was performed; runtime acceptance is separate.'
 } finally { Pop-Location }

@@ -38,7 +38,7 @@ try {
     $badPaths = Join-Path $fixture 'bad-paths.txt'
     [IO.File]::WriteAllLines($badPaths, [string[]]@($game, $save))
     Expect-Failure { Get-SelectModPaths -PathsFile $badPaths } 'three non-empty'
-    Expect-Failure { & (Join-Path $fixture 'scripts/Build.ps1') -PathsFile $paths } 'not implemented yet'
+    Expect-Failure { & (Join-Path $fixture 'scripts/Build.ps1') -PathsFile $paths } 'project was not found'
     $tool = Join-Path $fixture 'fake-ilspy.ps1'
     # This fake tests script orchestration only. It does not model or certify ILSpy/game behavior.
     [IO.File]::WriteAllText($tool, @'

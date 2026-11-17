@@ -1,0 +1,11 @@
+{
+  "id": "SelectMOD",
+  "name": "SelectMOD Settings Probe",
+  "author": "ROMEKANA",
+  "description": "ソロ専用の設定保存テスト。ボス選択・アセンション変更は未実装。",
+  "version": "0.1.0",
+  "has_dll": true,
+  "has_pck": false,
+  "affects_gameplay": true,
+  "dependencies": []
+}

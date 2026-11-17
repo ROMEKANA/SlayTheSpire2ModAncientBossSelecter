@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Version>0.1.0</Version>
+    <GameAssemblyPath Condition="'$(GameAssemblyPath)' == ''">$(GameDataDir)/sts2.dll</GameAssemblyPath>
+    <HarmonyAssemblyPath Condition="'$(HarmonyAssemblyPath)' == ''">$(GameDataDir)/0Harmony.dll</HarmonyAssemblyPath>
+    <GodotAssemblyPath Condition="'$(GodotAssemblyPath)' == ''">$(GameDataDir)/GodotSharp.dll</GodotAssemblyPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="sts2"><HintPath>$(GameAssemblyPath)</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(HarmonyAssemblyPath)</HintPath><Private>false</Private></Reference>
+    <Reference Include="GodotSharp"><HintPath>$(GodotAssemblyPath)</HintPath><Private>false</Private></Reference>
+    <EmbeddedResource Include="../../compatibility/reviewed-builds.json" LogicalName="SelectMOD.reviewed-builds.json" />
+  </ItemGroup>
+  <Target Name="ValidateReferences" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(GameAssemblyPath)') or !Exists('$(HarmonyAssemblyPath)') or !Exists('$(GodotAssemblyPath)')" Text="Set GameDataDir to actual game-owned references. Fixtures are not production references." />
+  </Target>
+</Project>

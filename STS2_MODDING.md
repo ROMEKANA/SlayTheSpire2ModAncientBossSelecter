@@ -4,7 +4,7 @@ Read this together with the root AGENTS.md. This file contains STS2-specific evi
 
 ## SelectMOD transfer and current contracts
 
-Transferred on 2026-11-18 from the completed UnifiedVanillaSave reference project. Historical phrases such as "this utility" and "this project" below refer to that reference MOD, not to an implemented SelectMOD. Its fixture checks, game version and owner success report are historical evidence only. SelectMOD currently has documentation and diagnostic/build-entry scripts, but no gameplay source, csproj, manifest, real-game build or runtime acceptance.
+Transferred on 2026-11-18 from the completed UnifiedVanillaSave reference project. Historical phrases such as "this utility" and "this project" below refer to that reference MOD, not to an implemented SelectMOD. Its fixture checks, game version and owner success report are historical evidence only. SelectMOD now has a 0.1.0 solo persistence-probe source, csproj, manifest and setup scripts. Independent fixture checks exist; actual-game build and runtime acceptance remain pending.
 
 Read root DESIGN_AND_LESSONS.md for SelectMOD's initial proposal and TECHNICAL_RESEARCH.md for inherited version-pinned external-source research. The following are SelectMOD-specific requirements:
 

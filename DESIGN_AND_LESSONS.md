@@ -1,6 +1,6 @@
 # SelectMOD: initial design and lessons
 
-Updated: 2026-11-18 (Asia/Tokyo). Status: initial proposal; no SelectMOD implementation, build or game acceptance yet.
+Updated: 2026-11-18 (Asia/Tokyo). Status: 0.1.0 solo settings probe implemented; independent checks pass, actual-reference build and game acceptance pending.
 
 Read [AGENTS.md](AGENTS.md) and [STS2_MODDING.md](STS2_MODDING.md) before implementation. The owner's current status and eventual commands belong in the Japanese [README.md](README.md). Detailed external-source evidence lives in [TECHNICAL_RESEARCH.md](TECHNICAL_RESEARCH.md); its research results are inherited records, not checks rerun during this documentation task.
 
@@ -157,3 +157,15 @@ The loader appends a MOD's assembly and marks it loaded after calling its initia
 SerializableRun and the load-join response carry both modifiers and saved rooms. Reuse that transport first. NetMessageBus handler registration does not establish a custom numeric wire ID, and its exception catch means throwing inside a handler is not a sufficient start/stop gate. Resolve custom verification transport only if the minimal standard-path experiment shows it is necessary.
 
 Next concrete implementation scope: one settings Modifier, supported scalar fields, solo clone/start/save/reload checks, and a minimal host/guest setting comparison. Encounter manipulation and ten-effect gameplay acceptance follow that proof. No live runtime result is claimed yet.
+
+## 15. Solo settings probe while multiplayer acceptance is deferred
+
+The owner cannot run host/guest acceptance until the weekend and asked to progress other work. Implemented 0.1.0 as a deliberately small persistence probe: a standard custom-run choice stores schema/value scalar SavedProperties, logs creation/load, and changes no ascension or encounter behavior. Per-run properties are the authority; current local preferences are read only when constructing a new choice. Invalid sentinels, duplicate models, unsupported mode and invalid values are rejected.
+
+The standard choice list is extended after normal model discovery. Literal Japanese labels apply only to LocString instances owned by this MOD, through a weak mapping and narrowly scoped formatted-text prefix; no localization tables or asset packs are modified. This display adapter needs real-game acceptance alongside model discovery. Initialization installs hooks without eagerly querying ModelDb. Exact reviewed dependency hashes gate installation and runtime initialization; hashes identify the reviewed source, not a passed runtime matrix.
+
+All multiplayer starts/loads are blocked while this probe is installed: lobby guards display a message and clear ready, and setup guards reject received start/load paths before changing RunManager state. Invalid saved settings are checked before the observed RunState restoration route. Do not enable multiplayer by treating fixture success as network acceptance. The eventual synchronization experiment is still pending, and this release sends no custom messages.
+
+Setup.ps1 validates reviewed references, runs independent tests, builds the actual production project, stages only the declared three files, preserves custom config paths/preferences and installs with rollback. Existing releases/config backups remain outside the loader tree. A generated installed SelectMOD.paths.txt locates custom runtime config without committing personal paths. Export-ProbeReport.ps1 collects bounded setup/build/runtime evidence; Disable.ps1 moves the installation outside mods without modifying saves. No save-routing or save migration is added. A probe run contains a custom modifier and requires this MOD to resume.
+
+Verification: production source linked against minimal independently written contract types and test-only Harmony, plus temporary PowerShell installer scenarios. These are explicitly not actual-game compilation, game SavedProperties round trips, Windows runtime acceptance or multiplayer tests. The owner next runs the prepared setup and solo create/save/restart/load experiment. Initial value42, change next-run preference to73 while closed, confirm old run42/new choice73. Gameplay effects and encounter selectors follow that proof rather than shipping an untested larger patch set.

@@ -48,7 +48,7 @@ if ($args[0] -eq '--version') { 'ilspycmd: 9.1.0.7988'; $global:LASTEXITCODE = 0
 $out = $args[[Array]::IndexOf($args, '-o') + 1]
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'last-output.txt'), $out)
 New-Item -ItemType Directory -Path $out -Force | Out-Null
-foreach ($name in @('RunManager', 'ActModel', 'ModifierModel', 'AscensionManager')) {
+foreach ($name in @('RunManager', 'ActModel', 'ModifierModel', 'AscensionManager', 'SavedProperties', 'SerializableActModel')) {
     if ($mode -eq 'missing' -and $name -eq 'ActModel') { continue }
     [IO.File]::WriteAllText((Join-Path $out ($name + '.cs')), "class $name { bool Test() { return manager.HasLevel(AscensionLevel.DoubleBoss); } }")
 }
@@ -70,6 +70,9 @@ $global:LASTEXITCODE = 0
     Assert-True ($text -match 'included: 2; cap: 2') 'Caller cap or report output failed'
     Assert-True ($text -match 'Target source:.*RunManager.cs') 'Target source missing'
     Assert-True ($text -match 'net9.0') 'Runtime configuration missing'
+    Assert-True ($text -match 'REPORT v2') 'Report schema version missing'
+    Assert-True ($text -match 'Target source:.*SavedProperties.cs') 'SavedProperties supporting source missing'
+    Assert-True ($text -match 'Target source:.*SerializableActModel.cs') 'Actual saved Act type missing'
     Assert-True ($text -match 'LongPathMarker') 'Generated source beyond 260 characters was not read'
     Assert-True (!(Test-Path -LiteralPath (Split-Path ([IO.File]::ReadAllText((Join-Path $fixture 'last-output.txt'))) -Parent))) 'Successful export left temporary generated source'
     Assert-True ($text -notmatch [regex]::Escape($fixture)) 'Report leaked absolute fixture path'

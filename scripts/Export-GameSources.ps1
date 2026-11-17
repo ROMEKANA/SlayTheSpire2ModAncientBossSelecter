@@ -2,7 +2,7 @@
 param(
     [string]$PathsFile,
     [string]$ToolPath,
-    [ValidateRange(1, 10000)][int]$MaxCallSites = 1200
+    [ValidateRange(1, 10000)][int]$MaxCallSites = 2500
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
@@ -45,7 +45,7 @@ try {
         $fingerprints[$name] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
     }
     $text = [Text.StringBuilder]::new()
-    $null = $text.AppendLine('SELECTMOD STATIC SOURCE REPORT v1')
+    $null = $text.AppendLine('SELECTMOD STATIC SOURCE REPORT v2')
     $null = $text.AppendLine('Static evidence only; no game execution or runtime acceptance. No saves/config were read or changed.')
     $null = $text.AppendLine('Collected UTC: ' + [DateTime]::UtcNow.ToString('o'))
     $null = $text.AppendLine('Tool: ILSpyCmd 9.1.0.7988')
@@ -76,10 +76,16 @@ try {
     if (!$sources.Count) { throw 'ILSpy produced no C# source. Previous report retained.' }
     $targetNames = @(
         'RunManager', 'RunState', 'ActModel', 'RoomSet', 'ModifierModel', 'AbstractModel', 'ModelDb',
-        'SavedPropertyAttribute', 'SerializableModifier', 'SerializableRun', 'SerializableAct',
+        'SavedPropertyAttribute', 'SavedProperties', 'SerializableModifier', 'SerializableRun',
+        'SerializableActModel', 'SerializableRoomSet',
         'AscensionManager', 'AscensionLevel', 'AscensionHelper',
         'StartRunLobby', 'LoadRunLobby', 'INetGameService', 'NetGameType',
-        'LobbyBeginRunMessage', 'LobbyBeginLoadedRunMessage',
+        'LobbyBeginRunMessage', 'LobbyBeginLoadedRunMessage', 'LobbyModifiersChangedMessage',
+        'ClientLobbyJoinResponseMessage', 'ClientLoadJoinResponseMessage', 'ClientRejoinResponseMessage',
+        'INetHostGameService', 'INetClientGameService', 'NetHostGameService', 'NetClientGameService',
+        'INetMessage', 'IPacketSerializable', 'NetMessageBus', 'ModelIdSerializationCache',
+        'PacketWriter', 'PacketReader', 'PacketWriterExtensions', 'PacketReaderExtensions',
+        'ModManager', 'ModInitializerAttribute', 'ReflectionHelper',
         'NCustomRunScreen', 'NCustomRunModifiersList', 'MapCmd',
         'Rng', 'RunRngSet', 'AncientEventModel'
     )
@@ -115,6 +121,9 @@ try {
         }
     }
     $null = $text.AppendLine("Search matches: $total; included: $count; cap: $MaxCallSites. Text search does not prove complete route coverage.")
+    if ($total -gt $count) {
+        Write-Warning "Caller evidence truncated: $count / $total. Retry with -MaxCallSites 10000 if complete search context is needed."
+    }
     foreach ($name in $fingerprints.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $data $name) -Algorithm SHA256).Hash -ne $fingerprints[$name]) {
             throw 'Game references changed during export. Previous report retained; retry after updates finish.'

@@ -17,7 +17,7 @@ Read root DESIGN_AND_LESSONS.md for SelectMOD's initial proposal and TECHNICAL_R
 - Audit HasLevel and direct ascension comparisons for every supported effect. Bind the run mask before first use; all-OFF independent mode differs from standard cumulative mode. An OR-only patch cannot disable a cumulative effect.
 - Do not transfer save-routing patches, audit fingerprints, MOD identities, old acceptance or old exporter target lists into SelectMOD. The case study below is retained to explain the lessons, not as a patch list for this project.
 
-No current game API, DLL fingerprint, build target or multiplayer guarantee has been confirmed by this documentation task. Use scripts/Export-GameSources.ps1 and follow the evidence plan in DESIGN_AND_LESSONS.md before implementing integration hooks. Validate features in solo first, but investigate a minimal multiplayer configuration/save round trip early; block multiplayer in unverified intermediate builds.
+An owner-supplied static source report now identifies Steam Build ID 26660232 and net9.0 and confirms several start/save/generation contracts; see docs/INSTALLED_GAME_REVIEW.md. Game-referenced compilation and multiplayer guarantees remain unverified. Use scripts/Export-GameSources.ps1 and follow the evidence plan in DESIGN_AND_LESSONS.md before implementing integration hooks. Validate features in solo first, but investigate a minimal multiplayer configuration/save round trip early; block multiplayer in unverified intermediate builds.
 
 ## Scope and confidence
 

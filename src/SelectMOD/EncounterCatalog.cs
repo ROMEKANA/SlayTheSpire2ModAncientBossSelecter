@@ -1,0 +1,32 @@
+using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Unlocks;
+
+namespace SelectMOD;
+
+public sealed record EncounterAct(int Index, ActModel Act, EncounterModel[] Bosses, AncientEventModel[] Ancients);
+public static class EncounterCatalog
+{
+    public static ModelKey Key(AbstractModel model) => Key(model.Id)!;
+    public static ModelKey? Key(ModelId? id) => id == null ? null : new ModelKey(id.Category, id.Entry);
+    public static ModelId Id(ModelKey key) => new(key.Category, key.Entry);
+    public static EncounterAct[] Build(IReadOnlyList<ActModel> acts, UnlockState unlocks)
+    {
+        if (acts.Count is < 1 or > EncounterRules.MaxActs) throw new InvalidOperationException("SelectMOD: 対応範囲外のAct数です。");
+        return acts.Select((act, index) => new EncounterAct(index, act,
+            act.AllBossEncounters.DistinctBy(m => Key(m)).OrderBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray(),
+            act.GetUnlockedAncients(unlocks).Concat(index > 0 ? unlocks.SharedAncients : Enumerable.Empty<AncientEventModel>())
+                .DistinctBy(m => Key(m)).OrderBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray())).ToArray();
+    }
+    public static void ValidateChoice(EncounterRule[] rules, EncounterAct[] catalog)
+    {
+        EncounterRules.Validate(rules);
+        if (rules.Length != catalog.Length) throw new InvalidOperationException("SelectMOD: 選択したAct数が一致しません。");
+        for (var i = 0; i < rules.Length; i++)
+        {
+            if (rules[i].Act != Key(catalog[i].Act)) throw new InvalidOperationException("SelectMOD: Actの候補が変わりました。");
+            if (rules[i].Boss != null && !catalog[i].Bosses.Any(m => Key(m) == rules[i].Boss)) throw new InvalidOperationException("SelectMOD: ボス候補が変わりました。");
+            if (rules[i].Ancient != null && !catalog[i].Ancients.Any(m => Key(m) == rules[i].Ancient)) throw new InvalidOperationException("SelectMOD: エンシェント候補が変わりました。");
+        }
+    }
+}

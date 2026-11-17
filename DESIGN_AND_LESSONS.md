@@ -1,6 +1,6 @@
 # SelectMOD: initial design and lessons
 
-Updated: 2026-11-18 (Asia/Tokyo). Status: 0.2.0 independent ascension implemented for solo Standard custom runs; actual-reference build and effect acceptance pending for this version. Prior 0.1.0 probe build/save/preference-separation acceptance is recorded separately.
+Updated: 2026-11-18 (Asia/Tokyo). Status: 0.3.0 solo pre-start boss/ancient selection implemented; independent ascension retired after owner-reported startup freeze. Actual-reference compilation and runtime acceptance pending for 0.3.0. Prior 0.1.0 probe build/save/preference-separation acceptance is recorded separately.
 
 Read [AGENTS.md](AGENTS.md) and [STS2_MODDING.md](STS2_MODDING.md) before implementation. The owner's current status and eventual commands belong in the Japanese [README.md](README.md). Detailed external-source evidence lives in [TECHNICAL_RESEARCH.md](TECHNICAL_RESEARCH.md); its research results are inherited records, not checks rerun during this documentation task.
 
@@ -191,3 +191,30 @@ The solo setup prefix captures immutable run values, including for early helper 
 [docs/ASCENSION_AUDIT.md](docs/ASCENSION_AUDIT.md) records effect consumers, timing, the cached-field exception and verification limits. The normal-run entry also passes modifiers into common NGame/RunState/RunManager code, supporting reuse of this effect module. Injection, normal-run UI and achievement/progress policy remain future adapter work; custom-run validation is not silently relaxed.
 
 Independent fixtures cover all 1024 masks through both query paths and cumulative-true/OFF conflicts, initial decisions, A7 restoration, A10 generation, save/preference separation, immutability, invalid fields, duplicate models, rejection/cleanup and foreign owners. PowerShell scenarios cover migration, explicit all-OFF, preference retention and the established transactional installer. These are not a substitute for the new version's actual-reference compilation or real game effects. Next owner acceptance: A2+A4 with A1 OFF, A5 alone across save/load, all-OFF, consecutive different-mask runs and A10. Preserve the working one-command setup and text report workflow.
+
+
+## 19. Solo encounter selector after 0.2.0 startup freeze (0.3.0)
+
+Assumption: fixture-level ascension binding checks would translate to a usable game start. Observed: the owner built/installed 0.2.0 successfully, but reports a freeze after starting. The supplied log ends after ASCENSION_CHOICE, without BOUND/CREATED or an exception. This does not identify a deadlock, patch failure or the exact stopping method. Do not claim a proven root cause or proven runtime fix.
+
+Decision: follow the owner's revised priority, finish solo boss/ancient selection first and remove all active independent-ascension hooks, initializers and A7 cache writes. Preserve SelectAscensionSettings/its saved identity as legacy data, rejecting its runs before restoration instead of silently changing their rules. Leave the game's cumulative level unchanged. Keep SelectSettingsProbe readable for earlier accepted saves, but remove both experimental choices from the modifier selection UI.
+
+Entry options considered:
+
+| Entry | Tradeoff / decision |
+| --- | --- |
+| Mod config before launch | Lowest UI work, but repeated setup and cannot show the actual chosen Acts; retain only a dialog enable preference |
+| Custom-run modifier menu | Existing persistence path is useful, but the requested repeated per-Act editing needs additional UI anyway |
+| Normal-run immediately before creation | Selected: intercept NGame.StartNewSingleplayerRun, await a native Godot dialog, then call the original once with an added modifier only for changed selections |
+
+The reviewed NGame signature takes Player, shouldSave, IReadOnlyList ActModel, IReadOnlyList ModifierModel, seed, GameMode, isCustomGame, ascensionLevel and optional dailyTime, returning Task<RunState>. It creates mutable Acts, calls SetUpNewSingleplayer (which generates rooms) and then awaits StartRun. This supplies actual Acts/unlocks before first RNG consumption. The UI never blocks with Wait/Result. The original caller receives the pending task; repeated calls share the attempt. Dialog destruction cancels the task; normal close explicitly starts unchanged. The original invocation has a scoped synchronous reentry guard. Daily/nonstandard/non-save routes bypass this UI.
+
+A changed normal start deliberately sets isCustomGame=true, keeping the standard custom-run achievements/progression policy. An unchanged start preserves the original flag, modifiers, cumulative ascension and RNG. This meets the requested entry experience without claiming an achievement-eligible standard run with altered encounters.
+
+The first selector supports fixed/default per-Act primary boss and ancient. Candidates are sorted/deduplicated full model IDs: local AllBossEncounters, unlocked local ancients and, after Act1, unlocked shared ancients. Fixed shared choices can override the game's random shared subset; repeated shared choices across Acts are allowed in this iteration. Ban/restriction rules and cross-Act bosses are deferred. All standard generation, including final A10 second boss, runs first. GenerateRooms postfix resolves all IDs before applying any room changes, before map creation. Preserve the standard second draw; swap the original primary into the second slot only if fixed primary collides. No additional game RNG draw or custom selector RNG is needed for fixed/default rules.
+
+SelectEncounterSettings owns schema=1, bounded JSON rules and bounded resolved results as registered scalar/string SavedProperties. Freeze rules before generation; write results once. Store actual Act identity, primary/secondary boss and ancient. On resume, validate the saved modifier and room DTOs before RunState.FromSerializable, rejecting missing/unknown/mismatched/deprecated targets; compare restored results again in AfterRunLoaded. Never regenerate on load. Cleanup releases manager associations. Multiplayer/replay guards stay explicit; this is not a synchronization implementation.
+
+Regression checks exercise production Harmony hooks against independent game/Godot fixtures: pending async start without early original/RNG execution, duplicate confirmation/start, unchanged/disabled paths, applied fixed IDs, standard A10 swaps, preserved RNG count, resolved result restoration and rejection before restoration, retired-save rejection, untouched standard ascension and multiplayer denial. A separate compile-only project checks the UI against public GodotSharp 4.5.1, with independent game contracts. Neither substitutes for the exact bundled Godot/game references or graphical acceptance. Read docs/VALIDATION.md for actual results.
+
+Diagnostics now log start/selection/generation/completion and exceptions, include a bounded conventional engine log when available, and open Windows Explorer selecting local/selectmod-probe.txt after export (opt out with -NoOpen). An Explorer failure warns after preserving the report. Owner next runs Setup, a NEW normal solo selection, encounter/map validation, save/restart/load and unchanged start. 0.2.0's actual build success does not certify this new version.

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);ACTUAL_GODOT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SelectMOD/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../SelectMOD.ContractTests/GameContracts.cs" Link="Fixtures/GameContracts.cs" />
+    <PackageReference Include="GodotSharp" Version="4.5.1" />
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+    <EmbeddedResource Include="../../compatibility/reviewed-builds.json" LogicalName="SelectMOD.reviewed-builds.json" />
+  </ItemGroup>
+</Project>

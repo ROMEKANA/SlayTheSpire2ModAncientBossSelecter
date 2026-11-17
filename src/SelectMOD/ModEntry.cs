@@ -35,7 +35,7 @@ public static class ModEntry
             // Never touch ModelDb or its caches while the loader is still adding this assembly.
             harmony.PatchAll(typeof(ModEntry).Assembly);
             IsActive = true;
-            WriteLog("INITIALIZED version=0.2.0 solo-only independent ascension; multiplayer disabled");
+            WriteLog("INITIALIZED version=0.3.0 solo boss/ancient selector; independent ascension disabled");
         }
         catch (Exception e)
         {
@@ -70,14 +70,10 @@ public static class ModEntry
         return value;
     }
 
-    public static int ReadNextAscensionMask()
+    public static bool ReadSelectionDialog()
     {
         using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(ConfigDirectory, "config.json")));
-        // Older config is upgraded by Setup; a direct old-config build defaults
-        // only NEW choices to all-OFF. Saved models never read this file.
-        var mask = json.RootElement.TryGetProperty("AscensionMask", out var field) ? field.GetInt32() : 0;
-        new AscensionSettings(AscensionSettings.CurrentSchema, mask).Validate();
-        return mask;
+        return !json.RootElement.TryGetProperty("SelectionDialog", out var field) || field.GetBoolean();
     }
 
     public static void WriteLog(string message)

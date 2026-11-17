@@ -1,5 +1,7 @@
 # Independent ascension integration audit (0.2.0)
 
+> Historical 0.2.0 audit. Independent ascension is disabled in 0.3.0 after an owner-reported startup freeze. No runtime effect acceptance was obtained. Current work is solo encounter selection; do not treat the mechanism below as active.
+
 Source evidence: the owner's v2 report identified in INSTALLED_GAME_REVIEW.md, Steam Build ID 26660232 and sts2.dll SHA-256 62ECBE91093E1FA862DE4329AAC865209DCB297804CAF0F0520D92D8C0B4A9C3. Source excerpts are static evidence, not agent-run game tests. Proprietary source is not committed.
 
 ## Reviewed effect routes

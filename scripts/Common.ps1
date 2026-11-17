@@ -1,5 +1,15 @@
 Set-StrictMode -Version Latest
 
+function ConvertTo-SelectModIoPath {
+    param([Parameter(Mandatory)][string]$Path)
+    # Explicit extended paths avoid legacy MAX_PATH handling in Windows PowerShell's
+    # .NET Framework file reads. Keep display/relative paths in their original form.
+    if ($Path.StartsWith('\\?\')) { return $Path }
+    if ($Path -match '^[A-Za-z]:\\') { return '\\?\' + $Path }
+    if ($Path.StartsWith('\\')) { return '\\?\UNC\' + $Path.Substring(2) }
+    return $Path
+}
+
 function Get-SelectModPaths {
     param([string]$PathsFile)
     $repo = Split-Path $PSScriptRoot -Parent

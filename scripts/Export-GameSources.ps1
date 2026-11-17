@@ -11,12 +11,15 @@ $local = Join-Path $repo 'local'
 New-Item -ItemType Directory -Path $local -Force | Out-Null
 # One export per checkout. A failed export retains the previous valid report.
 $guard = [IO.File]::Open((Join-Path $local 'source-export.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-$work = Join-Path $local ('source-export-' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $work | Out-Null
+# Keep generated names away from a potentially long checkout path. CreateTempSubdirectory
+# is unavailable in Windows PowerShell 5.1; the unique directory is created below instead.
+$work = Join-Path ([IO.Path]::GetTempPath()) ('sm-' + [guid]::NewGuid().ToString('N').Substring(0, 12))
 $stderr = Join-Path $work 'tool-errors.txt'
 $success = $false
+$temporary = $null
 Push-Location $repo
 try {
+    New-Item -ItemType Directory -Path $work | Out-Null
     $paths = Get-SelectModPaths -PathsFile $PathsFile
     $assembly = Get-SelectModGameAssembly -Game $paths.Game
     $data = Split-Path $assembly -Parent
@@ -88,7 +91,7 @@ try {
         $found[$source.BaseName] = $true
         $relative = $source.FullName.Substring($sourceDir.Length + 1)
         $null = $text.AppendLine("`n=== Target source: $relative ===")
-        $null = $text.AppendLine([IO.File]::ReadAllText($source.FullName))
+        $null = $text.AppendLine([IO.File]::ReadAllText((ConvertTo-SelectModIoPath $source.FullName)))
     }
     $null = $text.AppendLine("`n=== Requested types not found (names may differ; investigate inventory) ===")
     foreach ($name in $targetNames) { if (!$found.ContainsKey($name)) { $null = $text.AppendLine($name) } }
@@ -98,7 +101,7 @@ try {
     $total = 0
     $null = $text.AppendLine("`n=== Caller/search context (5 lines before/after; partial when capped) ===")
     foreach ($source in $sources) {
-        $lines = [IO.File]::ReadAllLines($source.FullName)
+        $lines = [IO.File]::ReadAllLines((ConvertTo-SelectModIoPath $source.FullName))
         for ($i = 0; $i -lt $lines.Length; $i++) {
             if ($lines[$i] -notmatch $pattern) { continue }
             $total++
@@ -121,7 +124,9 @@ try {
         if (!$found.ContainsKey($required)) { throw "Required type missing: $required. Partial source retained for investigation; previous report unchanged." }
     }
     $report = Join-Path $local 'selectmod-sources.txt'
-    $temporary = Join-Path $work 'report.txt'
+    # Stage next to the report: TEMP may be on another drive, while Replace/Move
+    # must preserve the same-filesystem atomic publication contract.
+    $temporary = Join-Path $local ('report-' + [guid]::NewGuid().ToString('N') + '.tmp')
     [IO.File]::WriteAllText($temporary, $text.ToString(), [Text.UTF8Encoding]::new($false))
     if (Test-Path -LiteralPath $report) {
         # Replace is atomic on the same filesystem and preserves the previous successful report.
@@ -138,6 +143,10 @@ try {
 } finally {
     Pop-Location
     try {
-        if ($success) { Remove-Item -LiteralPath $work -Recurse -Force }
+        if ($success) {
+            try { Remove-Item -LiteralPath (ConvertTo-SelectModIoPath $work) -Recurse -Force }
+            catch { Write-Warning "Report succeeded, but temporary source cleanup failed. Retained: $work" }
+        }
+        if ($temporary -and (Test-Path -LiteralPath $temporary)) { Remove-Item -LiteralPath $temporary -Force }
     } finally { $guard.Dispose() }
 }

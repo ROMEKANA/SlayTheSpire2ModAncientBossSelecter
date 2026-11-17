@@ -228,8 +228,9 @@ namespace Godot
         public enum SizeFlags { ExpandFill }
         public SizeFlags SizeFlagsHorizontal { get; set; } public SizeFlags SizeFlagsVertical { get; set; }
         public Vector2 CustomMinimumSize { get; set; }
+        public Vector2 Size { get; set; }
         public float AnchorLeft { get; set; } public float AnchorRight { get; set; }
-        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public int ZIndex { get; set; }
+        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
         public bool Visible { get; set; } = true;
         public bool IsVisibleInTree() => Visible;
         public event Action? VisibilityChanged;

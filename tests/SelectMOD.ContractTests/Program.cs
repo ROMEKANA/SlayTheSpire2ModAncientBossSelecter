@@ -46,6 +46,11 @@ try
     Engine.Tree.Root.AddChild(screen);
     var panel = Descendants<PanelContainer>(screen).Single();
     Check(panel.AnchorLeft > 0.5f && panel.AnchorRight > 0.9f, "panel not upper-right");
+    var toggle = Descendants<Button>(screen).Single(b => b.Name == "SelectMODToggle");
+    var content = Descendants<VBoxContainer>(screen).Single(c => c.Name == "SelectMODSelectionContent");
+    Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 72, "panel not initially collapsed to header height");
+    toggle.Press();
+    Check(content.Visible && panel.AnchorBottom > 0.8f && panel.OffsetBottom == 0, "panel did not expand");
     EncounterSelectionPanel.Attach(screen);
     Check(Descendants<PanelContainer>(screen).Count() == 1, "panel attached twice");
     var options = Descendants<OptionButton>(screen).ToArray();
@@ -62,6 +67,13 @@ try
     screen.ShowForTest();
     Check(options[0].Selected == 0, "cached screen displayed stale choice");
     options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
+    var choiceBeforeCollapse = EncounterDraft.Get(0);
+    toggle.Press();
+    Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 72, "collapse retained full-height hit area");
+    Check(EncounterDraft.Get(0) == choiceBeforeCollapse && toggle.Text.Contains("指定あり"), "collapse lost selection/status");
+    toggle.Press();
+    Check(content.Visible && options[0].Selected > 0, "reopening lost selection");
+    toggle.Press();
     var game = new NGame();
     var state = await game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(game.Calls == 1, "original start invoked more than once");
@@ -107,7 +119,7 @@ try
     Reject(() => EncounterRules.Validate([new(1, original.Act, null, null)]), "invalid Act index accepted");
     // Changing next-run UI state must not alter the active run's frozen values.
     var frozenRules = settings.SelectEncounterRules;
-    Descendants<Button>(screen).Single().Press();
+    Descendants<Button>(screen).Single(b => b.Name == "SelectMODRandomReset").Press();
     Check(EncounterDraft.Get(0) == (null, null) && options.All(o => o.Selected == 0), "reset did not update draft and controls");
     Check(settings.SelectEncounterRules == frozenRules, "next-run edit changed saved rules");
     var vanillaGame = new NGame();

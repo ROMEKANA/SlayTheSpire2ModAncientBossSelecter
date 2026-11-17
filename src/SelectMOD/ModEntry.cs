@@ -36,7 +36,7 @@ public static class ModEntry
             harmony.PatchAll(typeof(ModEntry).Assembly);
             EncounterSelectionPanel.Install();
             IsActive = true;
-            WriteLog("INITIALIZED version=0.4.1 solo boss/ancient selector; independent ascension disabled");
+            WriteLog("INITIALIZED version=0.4.2 solo boss/ancient selector; independent ascension disabled");
         }
         catch (Exception e)
         {

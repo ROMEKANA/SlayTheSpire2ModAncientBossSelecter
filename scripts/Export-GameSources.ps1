@@ -86,7 +86,8 @@ try {
         'INetMessage', 'IPacketSerializable', 'NetMessageBus', 'ModelIdSerializationCache',
         'PacketWriter', 'PacketReader', 'PacketWriterExtensions', 'PacketReaderExtensions',
         'ModManager', 'ModInitializerAttribute', 'ReflectionHelper',
-        'NCustomRunScreen', 'NCustomRunModifiersList', 'MapCmd',
+        'NCustomRunScreen', 'NCustomRunModifiersList', 'NCharacterSelectScreen', 'NGame', 'MapCmd',
+        'StartRunLobbyPlayer', 'LoadRunLobbyPlayer', 'RunLobby', 'PeerVersionInfo',
         'Rng', 'RunRngSet', 'AncientEventModel', 'Neow', 'EventModel', 'EncounterModel'
     )
     $null = $text.AppendLine("`n=== Source inventory (relative paths; includes actual namespaces) ===")

@@ -8,6 +8,8 @@ public static class EncounterSelectionPanel
     private static SceneTree? _tree;
     public static string? Failure { get; private set; }
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Node, PanelContainer> Panels = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Node, Action> Refreshers = new();
+    public static void Refresh(Control screen) { Attach(screen); if (Refreshers.TryGetValue(screen, out var refresh)) refresh(); }
     private static readonly string[] Screens = [
         "MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen",
         "MegaCrit.Sts2.Core.Nodes.Screens.CustomRun.NCustomRunScreen"
@@ -34,7 +36,7 @@ public static class EncounterSelectionPanel
         if (Panels.TryGetValue(screen, out _)) return;
         try
         {
-            if (!ModEntry.ReadSelectionDialog()) return;
+            if (!ModEntry.ReadSelectionDialog() && !MultiplayerSelection.IsNetwork(MultiplayerSelection.GetLobby(screen))) return;
             var catalog = EncounterCatalog.BuildOptions();
             var panel = new PanelContainer {
                 Name = "SelectMODSelectionPanel", AnchorLeft = 0.64f, AnchorRight = 0.985f,
@@ -48,8 +50,8 @@ public static class EncounterSelectionPanel
             content.AddThemeConstantOverride("separation", 10);
             var expanded = false;
             body.AddChild(toggle); body.AddChild(content);
-            content.AddChild(new Label { Text = "ソロの標準モード用／選ぶと即反映。通常の開始ボタンで出発。\n指定したランはカスタム扱い。ランダムは標準抽選。\n全Actから選択可能。[別Act]は動作未確認の実験機能。",
-                AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            var info = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            content.AddChild(info);
             var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
             var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             list.AddThemeConstantOverride("separation", 8);
@@ -59,8 +61,10 @@ public static class EncounterSelectionPanel
             var refresh = new List<Action>();
             void UpdateStatus()
             {
-                var changed = catalog.Any(a => EncounterDraft.Get(a.Index) != (null, null));
+                var changed = catalog.Any(a => CurrentChoice(screen, a.Index) != (null, null));
                 status.Text = changed ? "指定あり：この設定で開始します（カスタム扱い）" : "全てランダム：ゲーム標準の抽選で開始します";
+                var lobby = MultiplayerSelection.GetLobby(screen);
+                info.Text = (MultiplayerSelection.IsNetwork(lobby) ? MultiplayerSelection.Status(lobby!) : "ソロ：選ぶと即反映。指定したランはカスタム扱い。") + "\n全Actから選択可能。[別Act]は実験機能。";
                 toggle.Text = (expanded ? "▼ " : "▶ ") + "SelectMOD設定（" + (changed ? "指定あり" : "ランダム") + "）";
             }
             void ApplyHeight()
@@ -83,16 +87,24 @@ public static class EncounterSelectionPanel
             foreach (var act in catalog)
             {
                 list.AddChild(new Label { Text = $"Act {act.Index + 1}" });
-                AddChoice(list, "主ボス", act.Index, true, act.Bosses, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
-                AddChoice(list, "エンシェント", act.Index, false, act.Ancients, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
+                AddChoice(screen, list, "主ボス", act.Index, true, act.Bosses, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
+                AddChoice(screen, list, "エンシェント", act.Index, false, act.Ancients, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
             }
             var reset = new Button { Name = "SelectMODRandomReset", Text = "全てランダムに戻す", CustomMinimumSize = new Vector2(0, 44) };
-            reset.Pressed += () => { EncounterDraft.Reset(); foreach (var control in controls) control.Select(0); UpdateStatus(); };
+            reset.Pressed += () => {
+                try { var lobby = MultiplayerSelection.GetLobby(screen); if (MultiplayerSelection.IsNetwork(lobby)) MultiplayerSelection.Reset(lobby!); else EncounterDraft.Reset(); foreach (var control in controls) control.Select(0); UpdateStatus(); }
+                catch (Exception e) { ModEntry.Reject(e.Message); }
+            };
             content.AddChild(status); content.AddChild(reset); margin.AddChild(body); panel.AddChild(margin);
             // Theme overrides do not propagate from a Panel to child controls.
             SetFonts(panel);
-            screen.VisibilityChanged += () => { if (screen.IsVisibleInTree()) { foreach (var sync in refresh) sync(); UpdateStatus(); } };
-            Panels.Add(screen, panel); screen.AddChild(panel); UpdateStatus();
+            void RefreshView() { foreach (var sync in refresh) sync(); reset.Disabled = !CanEdit(screen); UpdateStatus(); }
+            Refreshers.Add(screen, RefreshView);
+            screen.VisibilityChanged += () => { if (screen.IsVisibleInTree()) RefreshView(); };
+            void LobbyChanged(MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby lobby) { if (ReferenceEquals(lobby, MultiplayerSelection.GetLobby(screen))) RefreshView(); }
+            MultiplayerSelection.Changed += LobbyChanged;
+            screen.TreeExiting += () => MultiplayerSelection.Changed -= LobbyChanged;
+            Panels.Add(screen, panel); screen.AddChild(panel); RefreshView();
             Failure = null;
             ModEntry.WriteLog($"SELECTION_PANEL_ATTACHED screen={screen.GetType().Name} acts={catalog.Length}");
         }
@@ -103,7 +115,17 @@ public static class EncounterSelectionPanel
         if (node is Control control) control.AddThemeFontSizeOverride("font_size", 23);
         foreach (var child in node.GetChildren()) SetFonts(child);
     }
-    private static void AddChoice<T>(VBoxContainer list, string label, int index, bool boss, T[] candidates, Func<T, string> title,
+    private static (ModelKey? Boss, ModelKey? Ancient) CurrentChoice(Control screen, int index)
+    {
+        var lobby = MultiplayerSelection.GetLobby(screen);
+        return MultiplayerSelection.IsNetwork(lobby) ? MultiplayerSelection.Choice(lobby!, index) : EncounterDraft.Get(index);
+    }
+    private static bool CanEdit(Control screen)
+    {
+        var lobby = MultiplayerSelection.GetLobby(screen);
+        return !MultiplayerSelection.IsNetwork(lobby) || MultiplayerSelection.Editable(lobby!);
+    }
+    private static void AddChoice<T>(Control screen, VBoxContainer list, string label, int index, bool boss, T[] candidates, Func<T, string> title,
         List<OptionButton> controls, List<Action> refresh, Action update) where T : AbstractModel
     {
         var row = new HBoxContainer();
@@ -114,15 +136,20 @@ public static class EncounterSelectionPanel
         foreach (var candidate in candidates) choice.AddItem(title(candidate));
         void Sync()
         {
-            var current = EncounterDraft.Get(index); var key = boss ? current.Boss : current.Ancient;
+            choice.Disabled = !CanEdit(screen);
+            var current = CurrentChoice(screen, index); var key = boss ? current.Boss : current.Ancient;
             var selected = key == null ? 0 : Array.FindIndex(candidates, c => EncounterCatalog.Key(c) == key) + 1;
             if (key != null && selected == 0) throw new InvalidOperationException("次回候補が見つかりません。ゲームを再起動してください。");
             choice.Select(selected);
         }
         Sync(); refresh.Add(Sync);
         choice.ItemSelected += value => {
-            EncounterDraft.Set(index, boss, value == 0 ? null : EncounterCatalog.Key(candidates[checked((int)value - 1)]));
-            update();
+            try {
+                var key = value == 0 ? null : EncounterCatalog.Key(candidates[checked((int)value - 1)]);
+                var lobby = MultiplayerSelection.GetLobby(screen);
+                if (MultiplayerSelection.IsNetwork(lobby)) MultiplayerSelection.Edit(lobby!, index, boss, key); else EncounterDraft.Set(index, boss, key);
+                update();
+            } catch (Exception e) { Sync(); ModEntry.Reject(e.Message); }
         };
         controls.Add(choice); row.AddChild(choice); list.AddChild(row);
     }

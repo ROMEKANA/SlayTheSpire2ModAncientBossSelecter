@@ -56,6 +56,7 @@ public static class EncounterRuntime
                 ModEntry.WriteLog($"ENCOUNTER_RESOLVED act={i + 1} boss={plan[i].Boss.StableKey} second={plan[i].SecondBoss?.StableKey ?? "none"} ancient={plan[i].Ancient?.StableKey ?? "none"}");
             }
             pending.Model.SelectEncounterResults = EncounterRules.Encode(plan);
+            ModEntry.WriteLog("ROOM_PLAN_DIGEST digest=" + MultiplayerContract.Hash(pending.Model.SelectEncounterResults));
             ModEntry.WriteLog("ROOMS_RESOLVED all results saved before map creation; no additional game RNG draws");
         }
         catch (Exception e) { ModEntry.WriteLog("ROOMS_FAILED " + e); throw; }

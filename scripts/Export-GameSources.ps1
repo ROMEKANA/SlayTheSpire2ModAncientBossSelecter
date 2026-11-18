@@ -75,7 +75,7 @@ try {
     $sources = @(Get-ChildItem -LiteralPath $sourceDir -Recurse -File -Filter '*.cs' | Sort-Object FullName)
     if (!$sources.Count) { throw 'ILSpy produced no C# source. Previous report retained.' }
     $targetNames = @(
-        'RunManager', 'RunState', 'ActModel', 'RoomSet', 'ModifierModel', 'AbstractModel', 'ModelDb',
+        'RunManager', 'RunState', 'IRunState', 'ActModel', 'RoomSet', 'ModifierModel', 'AbstractModel', 'ModelDb',
         'SavedPropertyAttribute', 'SavedProperties', 'SerializableModifier', 'SerializableRun',
         'SerializableActModel', 'SerializableRoomSet',
         'AscensionManager', 'AscensionLevel', 'AscensionHelper',
@@ -87,7 +87,7 @@ try {
         'PacketWriter', 'PacketReader', 'PacketWriterExtensions', 'PacketReaderExtensions',
         'ModManager', 'ModInitializerAttribute', 'ReflectionHelper',
         'NCustomRunScreen', 'NCustomRunModifiersList', 'MapCmd',
-        'Rng', 'RunRngSet', 'AncientEventModel'
+        'Rng', 'RunRngSet', 'AncientEventModel', 'Neow', 'EventModel', 'EncounterModel'
     )
     $null = $text.AppendLine("`n=== Source inventory (relative paths; includes actual namespaces) ===")
     foreach ($source in $sources) { $null = $text.AppendLine($source.FullName.Substring($sourceDir.Length + 1)) }

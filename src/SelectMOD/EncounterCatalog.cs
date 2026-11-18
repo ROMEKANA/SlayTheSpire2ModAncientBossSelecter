@@ -19,14 +19,26 @@ public static class EncounterCatalog
         .Select((variants, index) => BuildAt(index, variants.First())).ToArray();
     private static EncounterAct BuildAt(int index, ActModel actual)
     {
-        // Use the complete index pool, never the seed-selected variant or unlocks.
-        var variants = index < ModelDb.ActsByIndex.Count ? ModelDb.ActsByIndex[index] : new[] { actual };
+        // Fixed overrides may now use targets from any Act. Random still uses
+        // the game's ordinary candidate pool and unchanged RNG progression.
+        var variants = ModelDb.ActsByIndex.SelectMany(group => group).Append(actual);
         return new EncounterAct(index, actual,
             variants.SelectMany(a => a.AllBossEncounters).DistinctBy(Key)
                 .OrderBy(m => m.GetType().Name switch { "TheKinBoss" => 0, "WaterfallGiantBoss" => 1, _ => 2 })
                 .ThenBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray(),
-            variants.SelectMany(a => a.AllAncients).Concat(index > 0 ? ModelDb.AllSharedAncients : Enumerable.Empty<AncientEventModel>())
+            variants.SelectMany(a => a.AllAncients).Concat(ModelDb.AllSharedAncients)
                 .DistinctBy(Key).OrderBy(m => Key(m).StableKey, StringComparer.Ordinal).ToArray());
+    }
+    public static bool IsNative(int index, AbstractModel model)
+    {
+        if (index >= ModelDb.ActsByIndex.Count) return false;
+        var key = Key(model);
+        var variants = ModelDb.ActsByIndex[index];
+        return model switch {
+            EncounterModel => variants.Any(a => a.AllBossEncounters.Any(b => Key(b) == key)),
+            AncientEventModel => variants.Any(a => a.AllAncients.Any(a => Key(a) == key)) || (index > 0 && ModelDb.AllSharedAncients.Any(a => Key(a) == key)),
+            _ => false
+        };
     }
     public static void ValidateChoice(EncounterRule[] rules, EncounterAct[] catalog)
     {

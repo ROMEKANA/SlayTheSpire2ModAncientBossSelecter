@@ -20,6 +20,8 @@ IEnumerable<T> Descendants<T>(Node root) where T : Node => root.Children.OfType<
 var harmony = new Harmony(ModEntry.Owner);
 try
 {
+    var brokenNeow = new MegaCrit.Sts2.Core.Models.Events.Neow { State = new RunState { Modifiers = new[] { new SelectEncounterSettings() } } };
+    Check(brokenNeow.OptionsForTest().Count == 0, "unpatched Neow failure witness no longer reproduces");
     harmony.PatchAll(typeof(ModEntry).Assembly);
     typeof(ModEntry).GetProperty(nameof(ModEntry.IsActive))!.SetValue(null, true);
     var boss1 = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "boss1") });
@@ -33,9 +35,16 @@ try
     var variant = ModelDb.Register(new ActModel { Id = new("ACT", "alternate0"), Bosses = [variantBoss], Ancients = [lockedAncient] });
     ModelDb.ActsByIndex = [new ActModel[] { acts[0], variant }, new ActModel[] { acts[1] }, new ActModel[] { acts[2] }];
     ModelDb.AllSharedAncients = [shared];
+    var lateBoss = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "late-boss") });
+    var lateAncient = ModelDb.Register(new AncientEventModel { Id = new("ANCIENT", "late-ancient") });
+    acts[2].Bosses.Add(lateBoss); acts[2].Ancients.Add(lateAncient);
+    var globalOptions = EncounterCatalog.BuildOptions();
+    Check(globalOptions[0].Bosses.Contains(lateBoss) && globalOptions[0].Ancients.Contains(lateAncient), "late targets missing in Act1");
+    Check(!EncounterCatalog.IsNative(0, lateBoss) && !EncounterCatalog.IsNative(0, lateAncient), "late targets not marked cross-Act");
     var player = new Player();
     var catalog = EncounterCatalog.Build(acts, player.UnlockState);
-    Check(!catalog[0].Ancients.Contains(shared) && catalog[1].Ancients.Contains(shared), "shared eligibility");
+    Check(catalog[0].Ancients.Contains(shared) && catalog[1].Ancients.Contains(shared), "global shared candidates missing");
+    Check(!EncounterCatalog.IsNative(0, shared) && EncounterCatalog.IsNative(1, shared), "cross-Act label classification");
     Check(catalog[0].Bosses.Contains(variantBoss) && catalog[0].Ancients.Contains(lockedAncient), "alternate/locked candidates missing");
     var alternateCatalog = EncounterCatalog.Build([variant, acts[1], acts[2]], new());
     Check(catalog[0].Bosses.SequenceEqual(alternateCatalog[0].Bosses) && catalog[0].Ancients.SequenceEqual(alternateCatalog[0].Ancients), "catalog changed with seed variant/unlocks");
@@ -83,6 +92,14 @@ try
     Check(state.Acts[1].GetRoomsDebug().Boss == boss1, "unselected Act changed");
     Check(game.Manager.GameRngDraws == 7, "selection consumed additional game RNG");
     var settings = state.Modifiers.OfType<SelectEncounterSettings>().Single();
+    var neow = new MegaCrit.Sts2.Core.Models.Events.Neow { State = state };
+    Check(neow.OptionsForTest().SequenceEqual(new[] { "standard-neow-reward" }), "SelectMOD storage suppressed normal Neow rewards");
+    Check(state.Modifiers.Single() == settings, "Neow filtering mutated run modifiers");
+    var foreignReward = new MegaCrit.Sts2.Core.Models.Events.FixtureRewardModifier();
+    var mixedState = new RunState { Modifiers = new List<ModifierModel> { settings, foreignReward } };
+    Check(new MegaCrit.Sts2.Core.Models.Events.Neow { State = mixedState }.OptionsForTest().Single() == foreignReward.Title.GetFormattedText(), "foreign modifier reward changed");
+    Check(mixedState.Modifiers.Count == 2, "mixed Neow view changed persisted state");
+    Check(new MegaCrit.Sts2.Core.Models.Events.Neow().OptionsForTest().Single() == "standard-neow-reward", "vanilla Neow branch changed");
     Check(settings.SelectEncounterResults.Length != 0, "resolved plan not saved");
     Reject(() => settings.SelectEncounterRules = "[]", "frozen rules changed");
     Reject(() => settings.SelectEncounterResults = "[]", "resolved results changed");
@@ -117,6 +134,14 @@ try
     Reject(() => EncounterRules.Decode<EncounterRule>("broken"), "broken JSON accepted");
     Reject(() => EncounterRules.Decode<EncounterRule>(new string('x', 32769)), "oversized JSON accepted");
     Reject(() => EncounterRules.Validate([new(1, original.Act, null, null)]), "invalid Act index accepted");
+    // Actually start with Act3 targets in Act1 through the real panel signal path.
+    options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, lateBoss) + 1);
+    options[1].UserSelect(Array.IndexOf(catalog[0].Ancients, lateAncient) + 1);
+    var crossGame = new NGame();
+    var crossState = await crossGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false);
+    Check(crossState.Acts[0].GetRoomsDebug().Boss == lateBoss && crossState.Acts[0].GetRoomsDebug().Ancient == lateAncient, "cross-Act fixed selection not applied");
+    Check(crossGame.Manager.GameRngDraws == 6, "cross-Act selection advanced extra RNG");
+    crossGame.Manager.CleanUp();
     // Changing next-run UI state must not alter the active run's frozen values.
     var frozenRules = settings.SelectEncounterRules;
     Descendants<Button>(screen).Single(b => b.Name == "SelectMODRandomReset").Press();

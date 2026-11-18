@@ -48,7 +48,7 @@ public static class EncounterSelectionPanel
             content.AddThemeConstantOverride("separation", 10);
             var expanded = false;
             body.AddChild(toggle); body.AddChild(content);
-            content.AddChild(new Label { Text = "ソロの標準モード用／選ぶと即反映。通常の開始ボタンで出発。\n指定したランはカスタム扱い。ランダムは標準抽選。",
+            content.AddChild(new Label { Text = "ソロの標準モード用／選ぶと即反映。通常の開始ボタンで出発。\n指定したランはカスタム扱い。ランダムは標準抽選。\n全Actから選択可能。[別Act]は動作未確認の実験機能。",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart });
             var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
             var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -83,8 +83,8 @@ public static class EncounterSelectionPanel
             foreach (var act in catalog)
             {
                 list.AddChild(new Label { Text = $"Act {act.Index + 1}" });
-                AddChoice(list, "主ボス", act.Index, true, act.Bosses, candidate => candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
-                AddChoice(list, "エンシェント", act.Index, false, act.Ancients, candidate => candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
+                AddChoice(list, "主ボス", act.Index, true, act.Bosses, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
+                AddChoice(list, "エンシェント", act.Index, false, act.Ancients, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
             }
             var reset = new Button { Name = "SelectMODRandomReset", Text = "全てランダムに戻す", CustomMinimumSize = new Vector2(0, 44) };
             reset.Pressed += () => { EncounterDraft.Reset(); foreach (var control in controls) control.Select(0); UpdateStatus(); };

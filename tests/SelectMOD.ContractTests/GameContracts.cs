@@ -26,6 +26,7 @@ namespace MegaCrit.Sts2.Core.Models
         public virtual MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry);
 
         public virtual MegaCrit.Sts2.Core.Localization.LocString Description => new("fixture", "description");
+        public virtual Func<Task>? GenerateNeowOption(EventModel model) => null;
         public ModifierModel ToMutable() => (ModifierModel)MemberwiseClone();
         protected virtual void AfterRunCreated(RunState state) { }
         protected virtual void AfterRunLoaded(RunState state) { }
@@ -34,7 +35,8 @@ namespace MegaCrit.Sts2.Core.Models
         public static ModifierModel FromSerializable(SerializedModifier saved) => saved.Value;
     }
     public class EncounterModel : AbstractModel { public MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry); }
-    public class AncientEventModel : AbstractModel { public MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry); }
+    public class EventModel : AbstractModel { public MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry); }
+    public class AncientEventModel : EventModel { }
     public class ActModel : AbstractModel
     {
         public virtual MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry);
@@ -83,9 +85,10 @@ namespace MegaCrit.Sts2.Core.Rooms
 namespace MegaCrit.Sts2.Core.Runs
 {
     public enum GameMode { Standard, Blitz }
-    public class RunState
+    public interface IRunState { IReadOnlyList<ModifierModel> Modifiers { get; } }
+    public class RunState : IRunState
     {
-        public List<ModifierModel> Modifiers { get; set; } = [];
+        public IReadOnlyList<ModifierModel> Modifiers { get; set; } = [];
         public bool IsCustomGame { get; set; }
         public GameMode GameMode { get; set; }
         public List<int> Players { get; set; } = [1];
@@ -255,3 +258,24 @@ namespace Godot
     }
 }
 #endif
+
+// Independent reward-branch witness based on the supplied Neow source fragment.
+namespace MegaCrit.Sts2.Core.Models.Events
+{
+    public class Neow : AncientEventModel
+    {
+        public IRunState State { get; set; } = new RunState();
+        public IReadOnlyList<string> OptionsForTest() => GenerateInitialOptions();
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        protected IReadOnlyList<string> GenerateInitialOptions()
+        {
+            if (State.Modifiers.Count > 0) return GenerateNeowModifiers();
+            return new[] { "standard-neow-reward" };
+        }
+        private IReadOnlyList<string> GenerateNeowModifiers() => State.Modifiers.Where(m => m.GenerateNeowOption(this) != null).Select(m => m.Title.GetFormattedText()).ToArray();
+    }
+    public sealed class FixtureRewardModifier : ModifierModel
+    {
+        public override Func<Task>? GenerateNeowOption(EventModel model) => () => Task.CompletedTask;
+    }
+}

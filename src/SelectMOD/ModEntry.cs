@@ -74,7 +74,10 @@ public static class ModEntry
 
     public static bool ReadSelectionDialog()
     {
-        using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(ConfigDirectory, "config.json")));
+        // Workshop subscribers have no installer-generated config; keep the panel available.
+        var path = Path.Combine(ConfigDirectory, "config.json");
+        if (!File.Exists(path)) return true;
+        using var json = JsonDocument.Parse(File.ReadAllText(path));
         return !json.RootElement.TryGetProperty("SelectionDialog", out var field) || field.GetBoolean();
     }
 

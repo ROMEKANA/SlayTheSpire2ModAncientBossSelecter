@@ -22,6 +22,13 @@ IEnumerable<T> Descendants<T>(Node root) where T : Node => root.Children.OfType<
 var harmony = new Harmony(ModEntry.Owner);
 try
 {
+    var configPath = Path.Combine(dir, "config.json");
+    File.Delete(configPath);
+    Check(ModEntry.ReadSelectionDialog(), "fresh Workshop subscription must show panel without config");
+    Check(!File.Exists(configPath), "reading subscriber defaults must not generate config");
+    File.WriteAllText(configPath, "{\"ProbeValue\":73,\"SelectionDialog\":false}");
+    Check(!ModEntry.ReadSelectionDialog(), "explicit installed panel preference must be retained");
+    File.WriteAllText(configPath, "{\"ProbeValue\":73,\"SelectionDialog\":true}");
     var brokenNeow = new MegaCrit.Sts2.Core.Models.Events.Neow { State = new RunState { Modifiers = new[] { new SelectEncounterSettings() } } };
     Check(brokenNeow.OptionsForTest().Count == 0, "unpatched Neow failure witness no longer reproduces");
     harmony.PatchAll(typeof(ModEntry).Assembly);

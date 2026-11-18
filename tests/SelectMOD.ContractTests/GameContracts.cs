@@ -70,7 +70,7 @@ namespace MegaCrit.Sts2.Core.Models
     }
 }
 namespace MegaCrit.Sts2.Core.Unlocks { public class UnlockState { public List<AncientEventModel> SharedAncients { get; set; } = []; } }
-namespace MegaCrit.Sts2.Core.Entities.Players { public class Player { public MegaCrit.Sts2.Core.Unlocks.UnlockState UnlockState { get; set; } = new(); } }
+namespace MegaCrit.Sts2.Core.Entities.Players { public class Player { public ulong NetId { get; set; } = 1; public MegaCrit.Sts2.Core.Unlocks.UnlockState UnlockState { get; set; } = new(); } }
 namespace MegaCrit.Sts2.Core.Rooms
 {
     public class RoomSet
@@ -99,7 +99,7 @@ namespace MegaCrit.Sts2.Core.Runs
         [MethodImpl(MethodImplOptions.NoInlining)] public static RunState FromSerializable(SerializableRun save)
         {
             Restores++;
-            var state = new RunState { IsCustomGame = save.IsCustomGame, GameMode = save.GameMode, AscensionLevel = save.Ascension, Modifiers = save.Modifiers.Select(ModifierModel.FromSerializable).ToList() };
+            var state = new RunState { Players = save.Players.ToList(), IsCustomGame = save.IsCustomGame, GameMode = save.GameMode, AscensionLevel = save.Ascension, Modifiers = save.Modifiers.Select(ModifierModel.FromSerializable).ToList() };
             foreach (var saved in save.Acts)
             {
                 var act = ModelDb.GetById<ActModel>(saved.Id!).ToMutable(); var room = saved.SerializableRooms;
@@ -115,10 +115,15 @@ namespace MegaCrit.Sts2.Core.Runs
     {
         private RunState? State;
         public int Starts; public int GameRngDraws;
+        public Task? SavedMultiplayerResult { get; set; }
         public bool IsInProgress => State != null;
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewSingleplayer(RunState state, bool save = true, DateTimeOffset? dailyTime = null)
         {
             if (State != null) throw new InvalidOperationException("Already active");
+            SetUpNewSingleplayerCore(state);
+        }
+        private void SetUpNewSingleplayerCore(RunState state)
+        {
             State = state; Starts++;
             foreach (var model in state.Modifiers) model.OnRunCreated(state);
             GenerateRooms();
@@ -137,14 +142,15 @@ namespace MegaCrit.Sts2.Core.Runs
         }
         [MethodImpl(MethodImplOptions.NoInlining)] public void CleanUp(bool graceful = true) { State = null; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpReplay(RunState state) { Starts++; }
-        [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby lobby, bool save = true) { Starts++; }
-        [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.LoadRunLobby lobby) { Starts++; return Task.CompletedTask; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby lobby, bool save = true, DateTimeOffset? daily = null) { SetUpNewSingleplayerCore(state); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.LoadRunLobby lobby) { State = state; Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return SavedMultiplayerResult ?? Task.CompletedTask; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public object GetRejoinMessage() => new object();
     }
 }
 namespace MegaCrit.Sts2.Core.Multiplayer.Game
 {
     public enum NetGameType { None, Singleplayer, Host, Client, Replay }
-    public class NetService { public NetGameType Type { get; set; } = NetGameType.Singleplayer; }
+    public class NetService { public NetGameType Type { get; set; } = NetGameType.Singleplayer; public ulong NetId { get; set; } = 1; public ulong HostNetId { get; set; } = 1; }
 }
 namespace MegaCrit.Sts2.Core.Multiplayer.Game.Lobby
 {
@@ -152,13 +158,27 @@ namespace MegaCrit.Sts2.Core.Multiplayer.Game.Lobby
     {
         public MegaCrit.Sts2.Core.Multiplayer.Game.NetService NetService { get; } = new();
         public bool IsCustom { get; set; } = true; public GameMode GameMode { get; set; }
-        public List<int> Players { get; } = [1]; public int Starts; public bool Ready; public int Ascension = 10;
-        public void SetReady(bool value) => Ready = value;
-        [MethodImpl(MethodImplOptions.NoInlining)] public void BeginRunForAllPlayers(string seed, List<ModifierModel> modifiers) { Starts++; }
+        public List<int> Players { get; set; } = [1]; public int Starts; public bool Ready; public int Ascension = 10;
+        public IReadOnlyList<ModifierModel> Modifiers { get; private set; } = Array.Empty<ModifierModel>();
+        public Action<IReadOnlyList<ModifierModel>>? OnPreview;
+        public Action<IReadOnlyList<ModifierModel>>? OnStart;
+        public void SetReady(bool value) { Ready = value; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SetGameMode(GameMode value) { GameMode = value; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void HandleGameModeChangedMessage(GameMode value, ulong sender) { GameMode = value; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SyncAscensionChange(int value) { Ascension = value; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void AddLocalHostPlayer() { }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SetModifiers(IReadOnlyCollection<ModifierModel> models) { Modifiers = models.ToArray(); OnPreview?.Invoke(Modifiers); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void InitializeFromMessage(object message) { }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void HandleModifiersChangedMessage(MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.LobbyModifiersChangedMessage message, ulong sender) { Modifiers = message.modifiers.Select(ModifierModel.FromSerializable).ToArray(); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void HandleLobbyBeginRunMessage(MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.LobbyBeginRunMessage message, ulong sender) { Players = message.playersInLobby!; Starts++; OnStart?.Invoke(message.modifiers.Select(ModifierModel.FromSerializable).ToArray()); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void BeginRunForAllPlayers(string seed, List<ModifierModel> modifiers) { Starts++; OnStart?.Invoke(modifiers); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void CleanUp(bool disconnect) { }
     }
     public class LoadRunLobby
     {
         public MegaCrit.Sts2.Core.Multiplayer.Game.NetService NetService { get; } = new();
+        public SerializableRun Run { get; set; } = new();
+        public List<int> Players { get; set; } = [1];
         public int Starts; public bool Ready;
         public bool IsAboutToBeginGame() => Ready;
         public void SetReady(bool value) { Ready = value; BeginRunForAllPlayersIfAllReady(); }
@@ -174,6 +194,15 @@ namespace MegaCrit.Sts2.Core.Nodes
     public class NGame
     {
         public int Calls; public RunManager Manager { get; } = new();
+        [MethodImpl(MethodImplOptions.NoInlining)] public Task<RunState> StartNewMultiplayerRun(List<MegaCrit.Sts2.Core.Entities.Players.Player> players,
+            MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby lobby, bool shouldSave, IReadOnlyList<ActModel> acts, IReadOnlyList<ModifierModel> modifiers,
+            string seed, int ascensionLevel, DateTimeOffset? dailyTime = null)
+        {
+            Calls++;
+            var state = new RunState { Players = players.Select(p => (int)p.NetId).ToList(), Acts = acts.Select(a => a.ToMutable()).ToList(), Modifiers = modifiers.ToList(), GameMode = lobby.GameMode, IsCustomGame = lobby.IsCustom, AscensionLevel = ascensionLevel };
+            Manager.SetUpNewMultiplayer(state, lobby, shouldSave, dailyTime);
+            return Task.FromResult(state);
+        }
         [MethodImpl(MethodImplOptions.NoInlining)] public Task<RunState> StartNewSingleplayerRun(MegaCrit.Sts2.Core.Entities.Players.Player player,
             bool shouldSave, IReadOnlyList<ActModel> acts, IReadOnlyList<ModifierModel> modifiers, string seed, GameMode mode,
             bool isCustomGame, int ascensionLevel = 0, DateTimeOffset? dailyTime = null)
@@ -192,12 +221,28 @@ namespace MegaCrit.Sts2.Core.Saves
     {
         public List<SerializedModifier> Modifiers { get; set; } = []; public bool IsCustomGame { get; set; }
         public GameMode GameMode { get; set; } public List<int> Players { get; set; } = [1]; public int Ascension { get; set; }
+        public long StartTime { get; set; } public int CurrentActIndex { get; set; }
         public List<MegaCrit.Sts2.Core.Saves.Runs.SerializableActModel> Acts { get; set; } = [];
     }
 }
 namespace MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect
 {
-    public class NCharacterSelectScreen : Godot.Control { }
+    public class NCharacterSelectScreen : Godot.Control {
+        public MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby? Lobby { get; set; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void AfterInitialized() { }
+    }
+}
+namespace MegaCrit.Sts2.Core.Nodes.Screens.CustomRun
+{
+    public class NCustomRunScreen : Godot.Control {
+        public MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby? Lobby { get; set; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void AfterInitialized() { }
+    }
+}
+namespace MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby
+{
+    public struct LobbyModifiersChangedMessage { public List<SerializedModifier> modifiers; }
+    public struct LobbyBeginRunMessage { public List<SerializedModifier> modifiers; public List<int>? playersInLobby; public string seed; }
 }
 // Witness APIs: production must not install any patches or alter their values.
 namespace MegaCrit.Sts2.Core.Entities.Ascension
@@ -244,8 +289,8 @@ namespace Godot
     public class PanelContainer : Control { } public class MarginContainer : Control { }
     public class VBoxContainer : Control { } public class HBoxContainer : Control { } public class ScrollContainer : Control { }
     public class Label : Control { public string Text { get; set; } = ""; public TextServer.AutowrapMode AutowrapMode { get; set; } }
-    public class OptionButton : Control { public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
-    public class Button : Control { public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
+    public class OptionButton : Control { public bool Disabled { get; set; } public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
+    public class Button : Control { public bool Disabled { get; set; } public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
     public class AcceptDialog : Control
     {
         public string Title { get; set; } = ""; public string DialogText { get; set; } = ""; public bool DialogHideOnOk { get; set; }

@@ -10,6 +10,8 @@ using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Saves.Runs;
 
+if (args.Length == 3 && args[0] == "--multiplayer-peer") { await MultiplayerTests.RunProcessPeer(args[1], args[2]); return; }
+
 var dir = Path.Combine(Path.GetTempPath(), "selectmod-contract-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(dir); Environment.SetEnvironmentVariable("SELECTMOD_CONFIG_DIR", dir);
 File.WriteAllText(Path.Combine(dir, "config.json"), "{\"ProbeValue\":73,\"SelectionDialog\":true}");
@@ -171,7 +173,8 @@ try
     var host = new MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby { Ready = true };
     host.NetService.Type = MegaCrit.Sts2.Core.Multiplayer.Game.NetGameType.Host;
     host.BeginRunForAllPlayers("seed", []);
-    Check(host.Starts == 0 && !host.Ready, "multiplayer not blocked");
+    Check(host.Starts == 0 && !host.Ready, "uninitialized multiplayer start not blocked");
+    checks += await MultiplayerTests.Run();
     var log = File.ReadAllText(Path.Combine(dir, "selectmod.log"));
     Check(log.Contains("START_COMPLETED") && log.Contains("ENCOUNTER_RUN_LOADED"), "progress diagnostics missing");
     Console.WriteLine($"PASS: {checks} independent selector/panel-signal/Harmony checks. Actual game build, UI and gameplay acceptance pending.");

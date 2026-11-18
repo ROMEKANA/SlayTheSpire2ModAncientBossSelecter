@@ -7,14 +7,33 @@ public static class ProbeRules
     {
         var models = modifiers.ToArray();
         if (models.OfType<SelectAscensionSettings>().Any()) throw new InvalidOperationException("SelectMOD: 0.2の個別アセンションは停止中です。この保存ランは変更せず、新規ランでボス選択を試してください。");
+        if (models.OfType<SelectLobbySettings>().Any()) throw new InvalidOperationException("SelectMOD: 未確定のロビー設定がランに混入しています。");
         var probes = models.OfType<SelectSettingsProbe>().ToArray();
         var encounters = models.OfType<SelectEncounterSettings>().ToArray();
         if (probes.Length == 0 && encounters.Length == 0) return;
         if (!ModEntry.IsActive) throw new InvalidOperationException("SelectMODは初期化されていません。");
         if (probes.Length > 1 || encounters.Length > 1) throw new InvalidOperationException("SelectMOD: 設定が重複しています。");
-        if (!isCustom || mode != GameMode.Standard || players != 1) throw new InvalidOperationException("SelectMOD: 選択ランはソロの標準モード専用です。");
+        if (!isCustom || mode != GameMode.Standard || players < 1 || players > MultiplayerContract.MaxPlayers || (probes.Length != 0 && players != 1)) throw new InvalidOperationException("SelectMOD: 選択ランは1～4人のStandardカスタム扱い専用です。");
         if (probes.Length == 1) probes[0].Snapshot.Validate();
-        if (encounters.Length == 1) encounters[0].ReadRules();
+        if (encounters.Length == 1)
+        {
+            var model = encounters[0]; var rules = model.ReadRules();
+            if (model.SelectMultiplayerOrigin.Length != 0)
+            {
+                var origin = MultiplayerContract.Read(model.SelectMultiplayerOrigin);
+                if (model.SelectMultiplayerPlayers != players || players < 2 || origin.Draft.Choices.Length != rules.Length)
+                    throw new InvalidOperationException("SelectMOD: 同期設定の人数／Act数が一致しません。");
+                for (var i = 0; i < rules.Length; i++)
+                    if (origin.Draft.Choices[i].Boss != rules[i].Boss || origin.Draft.Choices[i].Ancient != rules[i].Ancient)
+                        throw new InvalidOperationException("SelectMOD: ホストの確定設定とラン設定が一致しません。");
+            }
+            else if (players != 1 || model.SelectMultiplayerPlayers != 0) throw new InvalidOperationException("SelectMOD: マルチの確定設定が欠落しています。");
+        }
     }
-    public static void ValidateRun(RunState state) => ValidateSelection(state.Modifiers, state.IsCustomGame, state.GameMode, state.Players.Count);
+    public static void ValidateRun(RunState state)
+    {
+        ValidateSelection(state.Modifiers, state.IsCustomGame, state.GameMode, state.Players.Count);
+        foreach (var model in state.Modifiers.OfType<SelectEncounterSettings>().Where(m => m.SelectMultiplayerOrigin.Length != 0))
+            if (MultiplayerContract.Read(model.SelectMultiplayerOrigin).Draft.Ascension != state.AscensionLevel) throw new InvalidOperationException("SelectMOD: ホストとアセンションが一致しません。");
+    }
 }

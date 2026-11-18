@@ -11,6 +11,10 @@ public sealed class SelectEncounterSettings : ModifierModel
     private string _rules = "";
     private string _results = "";
     private bool _frozen;
+    private string _multiplayerOrigin = "";
+    private int _multiplayerPlayers;
+    [SavedProperty] public string SelectMultiplayerOrigin { get => _multiplayerOrigin; set { if (_frozen && value != _multiplayerOrigin) throw new InvalidOperationException("SelectMOD: 開始済みの同期設定は変更できません。"); _multiplayerOrigin = value; } }
+    [SavedProperty] public int SelectMultiplayerPlayers { get => _multiplayerPlayers; set { if (_frozen && value != _multiplayerPlayers) throw new InvalidOperationException("SelectMOD: 開始済みの参加人数は変更できません。"); _multiplayerPlayers = value; } }
     [SavedProperty] public int SelectEncounterSchema
     {
         get => _schema;
@@ -28,7 +32,7 @@ public sealed class SelectEncounterSettings : ModifierModel
     }
     public void Freeze() { ReadRules(); _frozen = true; }
     public override LocString Title => ProbeText.Create("encounter_title", "SelectMOD ボス・エンシェント選択");
-    public override LocString Description => ProbeText.Create("encounter_description", "キャラクター選択画面で指定した出現先を使います。確定結果はこのランに保存されます（ソロ用）。");
+    public override LocString Description => ProbeText.Create("encounter_description", "キャラクター選択画面で指定した出現先を使います。確定結果はこのランに保存されます。");
     public EncounterRule[] ReadRules()
     {
         if (SelectEncounterSchema != EncounterRules.Schema) throw new InvalidOperationException("SelectMOD: 未対応の選択データです。");

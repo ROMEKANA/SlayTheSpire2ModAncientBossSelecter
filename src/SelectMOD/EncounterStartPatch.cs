@@ -18,7 +18,7 @@ internal static class EncounterStartPatch
         try
         {
             ModEntry.WriteLog("START_ENTER solo standard; character-screen draft");
-            if (__3.Any(m => m is SelectAscensionSettings or SelectEncounterSettings))
+            if (__3.Any(m => m is SelectAscensionSettings or SelectEncounterSettings or SelectLobbySettings))
                 throw new InvalidOperationException("SelectMOD: 新規開始に既存の選択設定が含まれています。");
             if (ModEntry.ReadSelectionDialog())
             {

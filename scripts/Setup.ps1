@@ -97,9 +97,9 @@ try {
         if ($hadConfig) { [IO.File]::Replace($tempConfig, $config, $backupConfig) }
         else { [IO.File]::Move($tempConfig, $config) }
         $configWritten = $true
-        $trace.Add('INSTALLED version=0.5.0 solo boss/ancient selector; independent ascension disabled')
-        Write-Host 'Installed SelectMOD 0.5.0. Choose boss/ancient encounters in the upper-right of the character selection screen, then start a NEW solo run. Multiplayer is blocked.'
-        Write-Host "Character-screen selection panel: $($settings.SelectionDialog). Independent ascension is disabled; standard cumulative ascension is preserved."
+        $trace.Add('INSTALLED version=0.6.0 solo selector + Standard custom multiplayer beta; independent ascension disabled')
+        Write-Host 'Installed SelectMOD 0.6.0. Solo: use the character-screen settings. Multiplayer beta: host a Standard CUSTOM run, 2-4 players, same SelectMOD on every peer. Live rejoin is unsupported.'
+        Write-Host "Solo selection panel: $($settings.SelectionDialog). Multiplayer always displays synchronized host settings. Independent ascension is disabled; standard cumulative ascension is preserved."
     } catch {
         if ($installStarted -and (Test-Path -LiteralPath $destination)) { Move-Item -LiteralPath $destination -Destination (Join-Path $configDir ('failed-install-' + [guid]::NewGuid().ToString('N'))) }
         if ($previous) { Move-Item -LiteralPath $previous -Destination $destination }

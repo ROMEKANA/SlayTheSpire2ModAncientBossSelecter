@@ -103,3 +103,10 @@ Pending: actual 0.6.0 bundled-reference build, native model/property discovery a
 Agent-run: 185 production-linked independent contract/Harmony assertions (including three subscriber-default checks) and two separate .NET receiver processes; public Godot compile check; PowerShell parser/installer/export/report suites; tests/Workshop.Tests.ps1 temporary fixture orchestration. The latter checks portable allowlisting, no config/save writes, Japanese metadata, build failure preservation, partial native uploader failure, item-ID duplication guard/recovery, ID backup restoration and unknown-reference rejection. Fake payload and uploader files are temporary test fixtures, not production game references or Steam sessions.
 
 Pending: actual game-reference production build, official Windows uploader execution, Workshop create/update/visibility/legal-agreement acceptance, subscriber download and real loader initialization, existing manual-copy removal, subscriber fresh-config UI, actual multiplayer acceptance. A prepared script or upstream zero exit code does not certify these stages.
+
+
+## Workshop native stderr correction
+
+Owner console output confirms actual-reference 0.6.0 build succeeded with zero warnings/errors and workspace preparation completed. No installation, upload success or gameplay acceptance follows from that. The native uploader then emitted the breakpad AppID initialization line and Windows PowerShell stopped with NativeCommandError.
+
+Agent-run regression: tests/NativeProcess.Tests.ps1 executes real child processes with the same stderr line and exit0, then a nonzero exit17; captures UTF-8, quoted/empty/trailing-slash arguments and both pipes exceeding normal buffer capacity. tests/Workshop.Tests.ps1 remains a separate orchestration double for publication identity/pending recovery and failure propagation. tests/Scripts.Tests.ps1 validates syntax and existing script behavior. Pending: corrected Windows PowerShell 5.1 run, Steam submission/visibility and subscriber/gameplay acceptance.

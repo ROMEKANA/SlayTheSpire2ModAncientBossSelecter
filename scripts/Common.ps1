@@ -1,5 +1,44 @@
 Set-StrictMode -Version Latest
 
+function Invoke-SelectModNativeProcess {
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [string[]]$Arguments = @(),
+        [Parameter(Mandatory)][string]$ReportPath
+    )
+    # Windows PowerShell 5.1 turns redirected native stderr into ErrorRecords.
+    # Read both pipes directly, concurrently, and let the exit code decide success.
+    $info = [Diagnostics.ProcessStartInfo]::new()
+    $info.FileName = $FilePath
+    $info.WorkingDirectory = (Get-Location).ProviderPath
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $info.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
+    $info.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
+    # Arguments (rather than ArgumentList) also works on .NET Framework / PS5.1.
+    $info.Arguments = (@($Arguments | ForEach-Object {
+        '"' + ($_ -replace '(\\*)"', '$1$1\"' -replace '(\\+)$', '$1$1') + '"'
+    }) -join ' ')
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $info
+    try {
+        if (!$process.Start()) { throw 'Could not start native process.' }
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+        $stdout = $stdoutTask.GetAwaiter().GetResult()
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+        $exitCode = $process.ExitCode
+        $report = "=== stdout ===`n$stdout`n=== stderr ===`n$stderr`nEXIT_CODE=$exitCode`n"
+        [IO.File]::WriteAllText($ReportPath, $report, [Text.UTF8Encoding]::new($false))
+        if ($stdout) { Write-Host $stdout.TrimEnd() }
+        if ($stderr) { Write-Host $stderr.TrimEnd() }
+        return $exitCode
+    } finally { $process.Dispose() }
+}
+
 function Invoke-SelectModUtf8 {
     param([Parameter(Mandatory)][scriptblock]$Action)
     # Windows PowerShell 5.1 otherwise decodes UTF-8 dotnet output using its

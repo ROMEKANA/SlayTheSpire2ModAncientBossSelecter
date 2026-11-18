@@ -12,6 +12,9 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $root = Join-Path $repo 'local/workshop'
 $workspace = Join-Path $root 'SelectMOD'
+if (!$PrepareOnly -and (Get-Process -Name ModUploader -ErrorAction SilentlyContinue)) {
+    throw 'A ModUploader process is still running. Wait for it to finish before retrying; it may still be creating or uploading the item.'
+}
 & (Join-Path $PSScriptRoot 'Prepare-Workshop.ps1') -PathsFile $PathsFile -NoOpen:$NoOpen
 if ($PrepareOnly) { return }
 # Share the preparation lock so another process cannot replace content during upload.
@@ -66,10 +69,9 @@ try {
     # The uploader resolves steam_appid.txt from its working directory.
     Push-Location (Split-Path $UploaderPath -Parent)
     try {
-        Invoke-SelectModUtf8 {
-            & $UploaderPath upload -w $workspace 2>&1 | Tee-Object -FilePath $report
-            if ($LASTEXITCODE -ne 0) { throw "Official uploader failed (exit $LASTEXITCODE). Keep workspace and pending marker; send local/workshop-upload-report.txt." }
-        }
+        Write-Host 'Uploading via Steam. Output is captured until the uploader exits; please wait.'
+        $exitCode = Invoke-SelectModNativeProcess -FilePath $UploaderPath -Arguments @('upload', '-w', $workspace) -ReportPath $report
+        if ($exitCode -ne 0) { throw "Official uploader failed (exit $exitCode). Keep workspace and pending marker; send local/workshop-upload-report.txt." }
     } finally { Pop-Location }
     if (!(Test-Path -LiteralPath $idFile)) { throw 'Uploader returned without mod_id.txt. Keep pending marker and inspect the Workshop page before retrying.' }
     $id = [IO.File]::ReadAllText($idFile).Trim()

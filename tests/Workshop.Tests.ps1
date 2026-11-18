@@ -12,6 +12,15 @@ function global:dotnet { $global:LASTEXITCODE = 0; 'Fixture contract runner only
 try {
     New-Item -ItemType Directory -Path $fixture | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'scripts') -Destination (Join-Path $fixture 'scripts') -Recurse
+    # Orchestration double only; NativeProcess.Tests.ps1 exercises real child pipes.
+    [IO.File]::AppendAllText((Join-Path $fixture 'scripts/Common.ps1'), @'
+
+function Invoke-SelectModNativeProcess {
+    param($FilePath, $Arguments, $ReportPath)
+    & $FilePath @Arguments | Out-File -LiteralPath $ReportPath -Encoding utf8
+    return $global:LASTEXITCODE
+}
+'@)
     Copy-Item -LiteralPath (Join-Path $repo 'workshop') -Destination (Join-Path $fixture 'workshop') -Recurse
     $src = Join-Path $fixture 'src/SelectMOD'
     New-Item -ItemType Directory -Path $src -Force | Out-Null

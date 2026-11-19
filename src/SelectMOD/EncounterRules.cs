@@ -11,7 +11,8 @@ public sealed record ModelKey(string Category, string Entry)
             throw new InvalidOperationException("SelectMOD: 不正な候補IDです。");
     }
 }
-public sealed record EncounterRule(int Index, ModelKey Act, ModelKey? Boss, ModelKey? Ancient);
+public sealed record EncounterRule(int Index, ModelKey Act, ModelKey? Boss, ModelKey? Ancient,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] ModelKey? SecondBoss = null);
 public sealed record ResolvedEncounter(int Index, ModelKey Act, ModelKey Boss, ModelKey? SecondBoss, ModelKey? Ancient);
 
 public static class EncounterRules
@@ -34,10 +35,11 @@ public static class EncounterRules
         {
             var rule = rules[i];
             if (rule == null || rule.Index != i || rule.Act == null) throw new InvalidOperationException("SelectMOD: Actの対応が不正です。");
-            rule.Act.Validate(); rule.Boss?.Validate(); rule.Ancient?.Validate();
+            if (rule.SecondBoss != null && i != 2) throw new InvalidOperationException("副ボスはAct 3専用です。");
+            rule.SecondBoss?.Validate(); rule.Act.Validate(); rule.Boss?.Validate(); rule.Ancient?.Validate();
         }
     }
-    public static bool HasChanges(IEnumerable<EncounterRule> rules) => rules.Any(r => r.Boss != null || r.Ancient != null);
+    public static bool HasChanges(IEnumerable<EncounterRule> rules) => rules.Any(r => r.Boss != null || r.Ancient != null || r.SecondBoss != null);
     public static ResolvedEncounter Resolve(EncounterRule rule, ResolvedEncounter original, IReadOnlyCollection<ModelKey> bosses, IReadOnlyCollection<ModelKey> ancients)
     {
         if (rule.Act != original.Act || rule.Index != original.Index) throw new InvalidOperationException("SelectMOD: Actが選択時と異なります。");
@@ -48,7 +50,11 @@ public static class EncounterRules
         // Preserve the standard second-boss draw. If the selected primary was
         // that second boss, swap the original primary into the second slot.
         if (second != null && second == boss) second = original.Boss;
-        if (second != null && second == boss) throw new InvalidOperationException("SelectMOD: 第2ボスと主ボスが重複します。");
+        if (original.SecondBoss != null && rule.SecondBoss != null)
+        {
+            if (!bosses.Contains(rule.SecondBoss)) throw new InvalidOperationException("副ボス候補が変わりました。");
+            second = rule.SecondBoss;
+        }
         return original with { Boss = boss, SecondBoss = second, Ancient = rule.Ancient ?? original.Ancient };
     }
 }

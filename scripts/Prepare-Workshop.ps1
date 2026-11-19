@@ -30,17 +30,17 @@ try {
     }
     $manifestPath = Join-Path $repo 'src/SelectMOD/SelectMOD.json'
     $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($manifest.id -ne 'SelectMOD' -or $manifest.version -ne '0.8.0' -or !$manifest.has_dll -or $manifest.has_pck) { throw 'Unexpected 0.8.0 payload manifest.' }
+    if ($manifest.id -ne 'SelectMOD' -or $manifest.version -ne '0.9.0' -or !$manifest.has_dll -or $manifest.has_pck) { throw 'Unexpected 0.9.0 payload manifest.' }
     $content = Join-Path $stage 'content'
     New-Item -ItemType Directory -Path $content -Force | Out-Null
     # Explicit allowlist: never copy an installed mod folder, paths, saves, logs or game DLLs.
     Copy-Item -LiteralPath (Join-Path $repo 'src/SelectMOD/bin/Release/net9.0/SelectMOD.dll') -Destination $content
     Copy-Item -LiteralPath $manifestPath -Destination $content
     $metadata = [ordered]@{
-        title = 'SelectMOD - ボス・エンシェント選択 [0.8.0 試験版]'
+        title = 'SelectMOD - ボス・エンシェント選択 [0.9.0 試験版]'
         description = [IO.File]::ReadAllText((Join-Path $repo 'workshop/description.txt'))
         visibility = 'unlisted'
-        changeNote = '選択レベル以下の効果を10枠の炎から直接切り替え可能に。個別アセンションのアイコンを青い炎に変更。'
+        changeNote = 'Act 3の副ボス指定、通常ラン保存、候補の出現元表示、設定欄の移動と配置改善。'
         tags = @(); dependencies = @(); contentDescriptors = @()
     }
     [IO.File]::WriteAllText((Join-Path $stage 'workshop.json'), ($metadata | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
@@ -58,7 +58,7 @@ try {
         throw
     }
     foreach ($name in @('workshop.json', 'image.png')) { Copy-Item -LiteralPath (Join-Path $stage $name) -Destination (Join-Path $workspace $name) -Force }
-    $trace.Add('PREPARED version=0.8.0 visibility=unlisted; no installation, saves, config or Steam changes')
+    $trace.Add('PREPARED version=0.9.0 visibility=unlisted; no installation, saves, config or Steam changes')
     Write-Host "Prepared: $workspace"
     Write-Host 'Visibility: unlisted (anyone with the link). No Steam upload performed.'
     if (!$NoOpen -and $env:OS -eq 'Windows_NT') { Start-Process explorer.exe -ArgumentList ('"' + $workspace + '"') | Out-Null }

@@ -281,13 +281,27 @@ namespace Godot
     public readonly record struct Vector2(float X, float Y);
     public readonly record struct Vector2I(int X, int Y);
     public static class TextServer { public enum AutowrapMode { WordSmart } }
+    public class InputEvent { }
+    public enum MouseButton { Left }
+    public class InputEventMouseButton : InputEvent { public MouseButton ButtonIndex; public bool Pressed; }
+    public class InputEventMouseMotion : InputEvent { public Vector2 Relative; }
     public class Control : Node {
+        public event Action? Resized;
+        public void ResizeForTest() => Resized?.Invoke();
+        public Vector2 GlobalPosition { get; set; }
+        public (Vector2 Position, Vector2 Size, Vector2 End) GetGlobalRect() => (GlobalPosition, Size, new(GlobalPosition.X + Size.X, GlobalPosition.Y + Size.Y));
+        public T? GetNodeOrNull<T>(string path) where T : Node
+        {
+            Node? node = this;
+            foreach (var name in path.Split('/')) node = node?.GetChildren().FirstOrDefault(c => c.Name == name);
+            return node as T;
+        }
         public enum SizeFlags { ExpandFill }
         public SizeFlags SizeFlagsHorizontal { get; set; } public SizeFlags SizeFlagsVertical { get; set; }
         public Vector2 CustomMinimumSize { get; set; }
         public Vector2 Size { get; set; }
         public float AnchorLeft { get; set; } public float AnchorRight { get; set; }
-        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public string TooltipText { get; set; } = ""; public bool ClipContents { get; set; } public float OffsetLeft { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
+        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public string TooltipText { get; set; } = ""; public bool ClipContents { get; set; } public event Action<InputEvent>? GuiInput; public void InputForTest(InputEvent e) => GuiInput?.Invoke(e); public float OffsetRight { get; set; } public float OffsetTop { get; set; } public float OffsetLeft { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
         public bool Visible { get; set; } = true;
         public bool IsVisibleInTree() => Visible;
         public event Action? VisibilityChanged;

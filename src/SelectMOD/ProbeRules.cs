@@ -19,7 +19,7 @@ public static class ProbeRules
         if (probes.Length == 0 && encounters.Length == 0) return;
         if (!ModEntry.IsActive) throw new InvalidOperationException("SelectMODは初期化されていません。");
         if (probes.Length > 1 || encounters.Length > 1) throw new InvalidOperationException("SelectMOD: 設定が重複しています。");
-        if (!isCustom || mode != GameMode.Standard || players < 1 || players > MultiplayerContract.MaxPlayers || (probes.Length != 0 && players != 1)) throw new InvalidOperationException("SelectMOD: 選択ランは1～4人のStandardカスタム扱い専用です。");
+        if ((!isCustom && probes.Length != 0) || mode != GameMode.Standard || players < 1 || players > MultiplayerContract.MaxPlayers || (probes.Length != 0 && players != 1)) throw new InvalidOperationException("SelectMOD: 選択設定とランのモードまたは人数が一致しません。");
         if (probes.Length == 1) probes[0].Snapshot.Validate();
         if (encounters.Length == 1)
         {
@@ -30,7 +30,7 @@ public static class ProbeRules
                 if (model.SelectMultiplayerPlayers != players || players < 2 || origin.Draft.Choices.Length != rules.Length)
                     throw new InvalidOperationException("SelectMOD: 同期設定の人数／Act数が一致しません。");
                 for (var i = 0; i < rules.Length; i++)
-                    if (origin.Draft.Choices[i].Boss != rules[i].Boss || origin.Draft.Choices[i].Ancient != rules[i].Ancient)
+                    if (origin.Draft.Choices[i].Boss != rules[i].Boss || origin.Draft.Choices[i].Ancient != rules[i].Ancient || MultiplayerContract.EffectiveSecond(origin.Draft, i) != rules[i].SecondBoss)
                         throw new InvalidOperationException("SelectMOD: ホストの確定設定とラン設定が一致しません。");
             }
             else if (players != 1 || model.SelectMultiplayerPlayers != 0) throw new InvalidOperationException("SelectMOD: マルチの確定設定が欠落しています。");

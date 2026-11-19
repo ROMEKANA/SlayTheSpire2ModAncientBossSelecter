@@ -65,9 +65,15 @@ internal static class MultiplayerTests
             Reject(() => MultiplayerSelection.Edit(clients[0], 0, true, null), "guest edit");
             Reject(() => clients[0].SetModifiers([]), "guest native SetModifiers");
             var clientScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CustomRun.NCustomRunScreen { Lobby = clients[0] };
+            var left = new Control { Name = "LeftContainer" };
+            var group = new Control { Name = "CharSelectButtons" };
+            var icons = new Control { Name = "ButtonContainer", GlobalPosition = new(110, 200), Size = new(420, 80) };
+            clientScreen.AddChild(left); left.AddChild(group); group.AddChild(icons);
             Engine.Tree.Root.AddChild(clientScreen); clientScreen.AfterInitialized();
+            Check(Walk<HBoxContainer>(clientScreen).Single(b => b.Name == "SelectMODAscensionControls").GlobalPosition == new Vector2(110, 284),
+                "custom flames not below character icons");
             var controls = Walk<OptionButton>(clientScreen).ToArray();
-            Check(controls.Length == options.Length * 2 && controls.All(c => c.Disabled), "guest UI not read-only");
+            Check(controls.Length == options.Length * 2 + 1 && controls.All(c => c.Disabled), "guest UI not read-only");
             Check(Walk<Button>(clientScreen).Single(b => b.Name == "SelectMODRandomReset").Disabled, "guest reset enabled");
             var hostScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CustomRun.NCustomRunScreen { Lobby = host };
             Engine.Tree.Root.AddChild(hostScreen); hostScreen.AfterInitialized();
@@ -99,6 +105,8 @@ internal static class MultiplayerTests
             // The authoritative final packet must still bind the latest values.
             EncounterDraft.Set(0, true, null); deliver = false;
             MultiplayerSelection.Edit(host, 1, true, EncounterCatalog.Key(options[1].Bosses.First()));
+            MultiplayerSelection.Edit(host, 2, true, EncounterCatalog.Key(targetBoss));
+            MultiplayerSelection.Edit(host, 2, true, EncounterCatalog.Key(targetBoss), second: true);
             var final = Wire(host.Modifiers);
             var states = new List<RunState>(); var games = new List<NGame>();
             var players = host.Players.Select(id => new Player { NetId = (ulong)id }).ToList();
@@ -115,6 +123,7 @@ internal static class MultiplayerTests
             Check(states.Count == count, "not every peer started");
             Check(states.All(s => s.Acts[0].GetRoomsDebug().Boss.Id == targetBoss.Id && s.Acts[0].GetRoomsDebug().Ancient.Id == targetAncient.Id), "peers did not use host choices");
             Check(states.Select(s => s.Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults).Distinct().Count() == 1, "peer result plans differ");
+            Check(states.All(s => s.Acts[2].GetRoomsDebug().Boss.Id == targetBoss.Id && s.Acts[2].GetRoomsDebug().SecondBoss?.Id == targetBoss.Id), "guest lost same-boss A10 selection");
             Check(states.All(s => s.AscensionLevel == 10), "client used stale local ascension");
             Check(games.All(g => g.Manager.GameRngDraws == 7), "peer RNG advancement differs");
             Check(states.All(s => s.Players.Count == count && s.Modifiers.All(m => m is not SelectLobbySettings)), "unbound marker/player count in run");
@@ -175,6 +184,7 @@ internal static class MultiplayerTests
         normalHost.IsCustom = normalClient.IsCustom = false;
         AscensionPreference.Write(3);
         normalHost.AddLocalHostPlayer();
+        MultiplayerSelection.Edit(normalHost, 2, true, EncounterCatalog.Key(targetBoss), second: true);
         var hostPacket = Wire(normalHost.Modifiers);
         AscensionPreference.Write(AscensionSettings.All);
         normalClient.HandleLobbyBeginRunMessage(new() { modifiers = hostPacket, playersInLobby = [1, 2], seed = "mask" }, 1);
@@ -183,6 +193,7 @@ internal static class MultiplayerTests
             [], "mask", 0);
         Check(!peer.IsCustomGame && peer.AscensionLevel == 10 && peer.Modifiers.OfType<SelectAscensionSettings>().Single().Snapshot.Mask == 3,
             "normal guest used local preferences instead of final host mask");
+        Check(peer.Modifiers.OfType<SelectEncounterSettings>().Single().ReadRules()[2].SecondBoss == null, "disabled A10 leaked a second-boss rule");
         Check(!peer.Acts.Last().GetRoomsDebug().HasSecondBoss, "guest A10 was not suppressed");
         peerGame.Manager.CleanUp();
         var daily = await peerGame.StartNewMultiplayerRun([new Player(), new Player()], normalClient, true, acts,

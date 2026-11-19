@@ -2,7 +2,11 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
-## Current handoff — 0.8.0
+## Current handoff — 0.9.0
+
+Normal starts retain their native classification for fixed bosses and ancients in solo and host-controlled multiplayer. A nullable SecondBoss is omitted from old-format lobby JSON when unset so saved envelope hashes remain valid. Capture it only for effective A10 in Act III; override the existing native second slot and allow explicit same-encounter pairs. Never synthesize a double boss when A10 is skipped. Candidate groups derive from model IDs and native pools. Panel grip coordinates persist locally as normalized anchors. The custom-screen flame strip tracks the character button container or BaseLib scroll container. Verify click access at the owner's resolution and play through an identical-boss pair on hardware.
+
+## Previous handoff — 0.8.0
 
 Owner observed the solo A4-off / A5-on combination: potion capacity retained and Ascender’s Bane present. No claim for enemy attacks, odds, double boss or multiplayer hardware yet. The new fixed ten-slot UI lets the host or solo player edit lower levels without changing the scalar. Unavailable slots reserve space. The optional ModifierModel.Icon getter patch supplies the ascension model's own cached blue flame. The native top-left cumulative tooltip is still unfiltered. The Japanese README covers updating the existing unlisted standalone Workshop item and a two-peer smoke test.
 

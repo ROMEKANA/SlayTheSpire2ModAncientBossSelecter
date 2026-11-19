@@ -39,39 +39,36 @@ public static class EncounterSelectionPanel
             if (!ModEntry.ReadSelectionDialog() && !MultiplayerSelection.IsNetwork(MultiplayerSelection.GetLobby(screen))) return;
             var catalog = EncounterCatalog.BuildOptions();
             var panel = new PanelContainer {
-                Name = "SelectMODSelectionPanel", AnchorLeft = 0.64f, AnchorRight = 0.985f,
-                AnchorTop = 0.06f, AnchorBottom = 0.06f, OffsetBottom = 72, ZIndex = 50
+                Name = "SelectMODSelectionPanel", AnchorLeft = 0.075f, AnchorRight = 0.355f,
+                AnchorTop = 0.06f, AnchorBottom = 0.06f, OffsetBottom = 0, ZIndex = 50
             };
             var margin = new MarginContainer();
-            foreach (var side in new[] { "left", "top", "right", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 14);
-            var body = new VBoxContainer(); body.AddThemeConstantOverride("separation", 10);
-            var toggle = new Button { Name = "SelectMODToggle", CustomMinimumSize = new Vector2(0, 44) };
+            foreach (var side in new[] { "left", "top", "right", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 5);
+            var body = new VBoxContainer(); body.AddThemeConstantOverride("separation", 2);
+            var toggle = new Button { Name = "SelectMODToggle", CustomMinimumSize = new Vector2(0, 30) };
             var content = new VBoxContainer { Name = "SelectMODSelectionContent", Visible = false, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-            content.AddThemeConstantOverride("separation", 10);
+            content.AddThemeConstantOverride("separation", 2);
             var expanded = false;
-            body.AddChild(toggle); body.AddChild(content);
-            var info = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-            content.AddChild(info);
-            var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-            var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            list.AddThemeConstantOverride("separation", 8);
-            scroll.AddChild(list); content.AddChild(scroll);
-            var status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            var header = new HBoxContainer();
+            var grip = new Button { Name = "SelectMODDrag", Text = "⠿", TooltipText = "ドラッグで移動" };
+            toggle.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            header.AddChild(grip); header.AddChild(toggle);
+            body.AddChild(header); body.AddChild(content);
+            PanelPosition.Install(screen, panel, grip);
+            var list = new VBoxContainer();
+            list.AddThemeConstantOverride("separation", 1);
+            content.AddChild(list);
             var controls = new List<OptionButton>();
             var refresh = new List<Action>();
             void UpdateStatus()
             {
                 var changed = catalog.Any(a => CurrentChoice(screen, a.Index) != (null, null));
-                status.Text = changed ? "指定あり：この設定で開始します（カスタム扱い）" : "全てランダム：ゲーム標準の抽選で開始します";
-                var lobby = MultiplayerSelection.GetLobby(screen);
-                info.Text = (MultiplayerSelection.IsNetwork(lobby) ? MultiplayerSelection.Status(lobby!) : "ソロ：選ぶと即反映。指定したランはカスタム扱い。") + "\n全Actから選択可能。[別Act]は実験機能。";
+                changed |= DoubleBossEnabled(screen) && CurrentSecond(screen) != null;
                 toggle.Text = (expanded ? "▼ " : "▶ ") + "SelectMOD設定（" + (changed ? "指定あり" : "ランダム") + "）";
             }
             void ApplyHeight()
             {
-                panel.AnchorBottom = expanded ? 0.83f : panel.AnchorTop;
-                panel.OffsetBottom = expanded ? 0 : 72;
-                if (!expanded) panel.Size = new Vector2(panel.Size.X, 72);
+                panel.Size = new Vector2(panel.Size.X, 0);
             }
             toggle.Pressed += () => {
                 expanded = !expanded;
@@ -87,16 +84,18 @@ public static class EncounterSelectionPanel
             AscensionPanel.Add(screen, list, refresh);
             foreach (var act in catalog)
             {
-                list.AddChild(new Label { Text = $"Act {act.Index + 1}" });
-                AddChoice(screen, list, "主ボス", act.Index, true, act.Bosses, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
-                AddChoice(screen, list, "エンシェント", act.Index, false, act.Ancients, candidate => (EncounterCatalog.IsNative(act.Index, candidate) ? "" : "[別Act] ") + candidate.Title.GetFormattedText(), controls, refresh, UpdateStatus);
+                string BossTitle(EncounterModel m) => m.Title.GetFormattedText() + EncounterCatalog.OriginSuffix(act.Index, m);
+                AddChoice(screen, list, $"Act {act.Index + 1} 主ボス", act.Index, true, act.Bosses, BossTitle, controls, refresh, UpdateStatus);
+                if (act.Index == 2)
+                    AddChoice(screen, list, "Act 3 副ボス", 2, true, act.Bosses, BossTitle, controls, refresh, UpdateStatus, second: true);
+                AddChoice(screen, list, $"Act {act.Index + 1} エンシェント", act.Index, false, act.Ancients, m => m.Title.GetFormattedText() + EncounterCatalog.OriginSuffix(act.Index, m), controls, refresh, UpdateStatus);
             }
-            var reset = new Button { Name = "SelectMODRandomReset", Text = "全てランダムに戻す", CustomMinimumSize = new Vector2(0, 44) };
+            var reset = new Button { Name = "SelectMODRandomReset", Text = "全てランダムに戻す", CustomMinimumSize = new Vector2(0, 30) };
             reset.Pressed += () => {
                 try { var lobby = MultiplayerSelection.GetLobby(screen); if (MultiplayerSelection.IsNetwork(lobby)) MultiplayerSelection.Reset(lobby!); else EncounterDraft.Reset(); foreach (var control in controls) control.Select(0); UpdateStatus(); }
                 catch (Exception e) { ModEntry.Reject(e.Message); }
             };
-            content.AddChild(status); content.AddChild(reset); margin.AddChild(body); panel.AddChild(margin);
+            content.AddChild(reset); margin.AddChild(body); panel.AddChild(margin);
             // Theme overrides do not propagate from a Panel to child controls.
             SetFonts(panel);
             void RefreshView() { foreach (var sync in refresh) sync(); reset.Disabled = !CanEdit(screen); UpdateStatus(); }
@@ -113,7 +112,7 @@ public static class EncounterSelectionPanel
     }
     private static void SetFonts(Node node)
     {
-        if (node is Control control) control.AddThemeFontSizeOverride("font_size", 23);
+        if (node is Control control) control.AddThemeFontSizeOverride("font_size", 17);
         foreach (var child in node.GetChildren()) SetFonts(child);
     }
     private static (ModelKey? Boss, ModelKey? Ancient) CurrentChoice(Control screen, int index)
@@ -121,24 +120,40 @@ public static class EncounterSelectionPanel
         var lobby = MultiplayerSelection.GetLobby(screen);
         return MultiplayerSelection.IsNetwork(lobby) ? MultiplayerSelection.Choice(lobby!, index) : EncounterDraft.Get(index);
     }
+    private static bool DoubleBossEnabled(Control screen)
+    {
+        var lobby = MultiplayerSelection.GetLobby(screen);
+        if (lobby == null || lobby.GameMode != MegaCrit.Sts2.Core.Runs.GameMode.Standard) return false;
+        var network = MultiplayerSelection.IsNetwork(lobby);
+        var level = network ? MultiplayerSelection.PreviewLevel(lobby) ?? lobby.Ascension : lobby.Ascension;
+        return level == 10 && ((network ? MultiplayerSelection.Mask(lobby) : AscensionPreference.Read()) & 512) != 0;
+    }
+
+    private static ModelKey? CurrentSecond(Control screen)
+    {
+        var lobby = MultiplayerSelection.GetLobby(screen);
+        return MultiplayerSelection.IsNetwork(lobby) ? MultiplayerSelection.SecondBoss(lobby!) : EncounterDraft.SecondBoss;
+    }
+
     private static bool CanEdit(Control screen)
     {
         var lobby = MultiplayerSelection.GetLobby(screen);
-        return !MultiplayerSelection.IsNetwork(lobby) || (lobby!.IsCustom && MultiplayerSelection.Editable(lobby));
+        return !MultiplayerSelection.IsNetwork(lobby) || MultiplayerSelection.Editable(lobby!);
     }
     private static void AddChoice<T>(Control screen, VBoxContainer list, string label, int index, bool boss, T[] candidates, Func<T, string> title,
-        List<OptionButton> controls, List<Action> refresh, Action update) where T : AbstractModel
+        List<OptionButton> controls, List<Action> refresh, Action update, bool second = false) where T : AbstractModel
     {
         var row = new HBoxContainer();
-        row.AddChild(new Label { Text = label, CustomMinimumSize = new Vector2(125, 0) });
-        var choice = new OptionButton { FitToLongestItem = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 44) };
-        choice.GetPopup().AddThemeFontSizeOverride("font_size", 23);
+        row.AddChild(new Label { Text = label, CustomMinimumSize = new Vector2(155, 0) });
+        var choice = new OptionButton { FitToLongestItem = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 30) };
+        choice.GetPopup().AddThemeFontSizeOverride("font_size", 17);
         choice.AddItem("ランダム");
         foreach (var candidate in candidates) choice.AddItem(title(candidate));
         void Sync()
         {
-            choice.Disabled = !CanEdit(screen);
-            var current = CurrentChoice(screen, index); var key = boss ? current.Boss : current.Ancient;
+            row.Visible = !second || DoubleBossEnabled(screen);
+            choice.Disabled = !row.Visible || !CanEdit(screen);
+            var current = CurrentChoice(screen, index); var key = second ? CurrentSecond(screen) : boss ? current.Boss : current.Ancient;
             var selected = key == null ? 0 : Array.FindIndex(candidates, c => EncounterCatalog.Key(c) == key) + 1;
             if (key != null && selected == 0) throw new InvalidOperationException("次回候補が見つかりません。ゲームを再起動してください。");
             choice.Select(selected);
@@ -146,9 +161,10 @@ public static class EncounterSelectionPanel
         Sync(); refresh.Add(Sync);
         choice.ItemSelected += value => {
             try {
+                if (choice.Disabled) return;
                 var key = value == 0 ? null : EncounterCatalog.Key(candidates[checked((int)value - 1)]);
                 var lobby = MultiplayerSelection.GetLobby(screen);
-                if (MultiplayerSelection.IsNetwork(lobby)) MultiplayerSelection.Edit(lobby!, index, boss, key); else EncounterDraft.Set(index, boss, key);
+                if (MultiplayerSelection.IsNetwork(lobby)) MultiplayerSelection.Edit(lobby!, index, boss, key, second); else if (second) EncounterDraft.SecondBoss = key; else EncounterDraft.Set(index, boss, key);
                 update();
             } catch (Exception e) { Sync(); ModEntry.Reject(e.Message); }
         };

@@ -11,10 +11,11 @@ public static class EncounterDraft
         Choices[index] = boss ? (value, old.Ancient) : (old.Boss, value);
         ModEntry.WriteLog($"SELECTION_EDIT act={index + 1} target={(boss ? "boss" : "ancient")} value={value?.StableKey ?? "random"}");
     }
-    public static void Reset() { Choices.Clear(); ModEntry.WriteLog("SELECTION_RESET random for all Acts"); }
-    public static EncounterRule[] Snapshot(EncounterAct[] catalog)
+    public static ModelKey? SecondBoss { get; set; }
+    public static void Reset() { SecondBoss = null; Choices.Clear(); ModEntry.WriteLog("SELECTION_RESET random for all Acts"); }
+    public static EncounterRule[] Snapshot(EncounterAct[] catalog, bool doubleBoss = false)
     {
-        var rules = catalog.Select(a => new EncounterRule(a.Index, EncounterCatalog.Key(a.Act), Get(a.Index).Boss, Get(a.Index).Ancient)).ToArray();
+        var rules = catalog.Select(a => new EncounterRule(a.Index, EncounterCatalog.Key(a.Act), Get(a.Index).Boss, Get(a.Index).Ancient, doubleBoss && a.Index == 2 ? SecondBoss : null)).ToArray();
         EncounterCatalog.ValidateChoice(rules, catalog);
         return rules;
     }

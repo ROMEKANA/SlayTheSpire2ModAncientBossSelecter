@@ -22,19 +22,43 @@ internal static class AscensionPanel
             buttons[n - 1] = button;
         }
         var native = FindPanel(screen);
-        var besideNative = native != null && native is not Container && !native.ClipContents;
+        var custom = screen.GetType().Name == "NCustomRunScreen";
+        var besideNative = !custom && native != null && native is not Container && !native.ClipContents;
         if (besideNative)
         {
             // Use native local coordinates so layout follows the game's UI scale.
             box.AnchorLeft = box.AnchorRight = 1;
             box.OffsetLeft = 8;
         }
-        var parent = besideNative ? native! : (Control)list;
+        if (custom)
+        {
+            box.AnchorLeft = box.AnchorRight = 0.32f;
+            box.AnchorTop = box.AnchorBottom = 0.88f;
+            box.ZIndex = 51;
+        }
+        var parent = custom ? screen : besideNative ? native! : (Control)list;
 #if SELECTMOD_BASELIB
         BaseLib.Extensions.NodeExtensions.AddUnique(parent, box, "SelectMODAscensionControls");
 #else
         parent.AddChild(box);
 #endif
+
+        if (custom)
+        {
+            // Both the stock row and BaseLib's optional scroll wrapper live under CharSelectButtons.
+            void PlaceBelowCharacters()
+            {
+                var group = screen.GetNodeOrNull<Control>("LeftContainer/CharSelectButtons");
+                var icons = group?.GetNodeOrNull<Control>("ButtonScrollContainer") ?? group?.GetNodeOrNull<Control>("ButtonContainer");
+                if (icons == null) return;
+                var bounds = icons.GetGlobalRect();
+                if (bounds.Size.X > 0 && bounds.Size.Y > 0)
+                    box.GlobalPosition = new Vector2(bounds.Position.X, bounds.End.Y + 4);
+            }
+            refresh.Add(PlaceBelowCharacters);
+            screen.Resized += () => Callable.From(PlaceBelowCharacters).CallDeferred();
+            Callable.From(PlaceBelowCharacters).CallDeferred();
+        }
 
         void Sync()
         {
@@ -64,7 +88,7 @@ internal static class AscensionPanel
                 if (MultiplayerSelection.IsNetwork(lobby) && !MultiplayerSelection.Editable(lobby)) return;
                 AscensionPreference.Write(AscensionPreference.Read() ^ (1 << (n - 1)));
                 if (MultiplayerSelection.Editable(lobby)) lobby.SetModifiers(lobby.Modifiers.ToArray());
-                Sync();
+                EncounterSelectionPanel.Refresh(screen);
             }
             catch (Exception e) { ModEntry.Reject(e.Message); }
         }

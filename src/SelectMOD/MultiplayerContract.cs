@@ -4,7 +4,8 @@ using MegaCrit.Sts2.Core.Models;
 
 namespace SelectMOD;
 
-public sealed record LobbyChoice(int Index, ModelKey? Boss, ModelKey? Ancient);
+public sealed record LobbyChoice(int Index, ModelKey? Boss, ModelKey? Ancient,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] ModelKey? SecondBoss = null);
 public sealed record LobbyDraft(int Protocol, string Session, int Revision, string Catalog, int Ascension, LobbyChoice[] Choices)
 {
     // Omit the default so existing 0.6.0 saved envelopes retain their canonical digest.
@@ -55,13 +56,14 @@ public static class MultiplayerContract
         var options = EncounterCatalog.BuildOptions();
         if (draft.Choices.Length != options.Length) throw new InvalidOperationException("SelectMOD: マルチ設定のAct数が一致しません。");
         var rules = draft.Choices.Select((choice, i) => choice == null ? throw new InvalidOperationException("SelectMOD: 選択が欠落しています。")
-            : new EncounterRule(choice.Index, EncounterCatalog.Key(options[i].Act), choice.Boss, choice.Ancient)).ToArray();
+            : new EncounterRule(choice.Index, EncounterCatalog.Key(options[i].Act), choice.Boss, choice.Ancient, choice.SecondBoss)).ToArray();
         EncounterCatalog.ValidateChoice(rules, options);
     }
+    public static ModelKey? EffectiveSecond(LobbyDraft draft, int index) => draft.Ascension == 10 && ((draft.AscensionMask ?? AscensionSettings.All) & 512) != 0 ? draft.Choices[index].SecondBoss : null;
     public static EncounterRule[] Bind(LobbyEnvelope envelope, IReadOnlyList<ActModel> acts)
     {
         Validate(envelope);
         if (envelope.Draft.Choices.Length != acts.Count) throw new InvalidOperationException("SelectMOD: 開始時のAct数が変わりました。");
-        return acts.Select((act, i) => new EncounterRule(i, EncounterCatalog.Key(act), envelope.Draft.Choices[i].Boss, envelope.Draft.Choices[i].Ancient)).ToArray();
+        return acts.Select((act, i) => new EncounterRule(i, EncounterCatalog.Key(act), envelope.Draft.Choices[i].Boss, envelope.Draft.Choices[i].Ancient, EffectiveSecond(envelope.Draft, i))).ToArray();
     }
 }

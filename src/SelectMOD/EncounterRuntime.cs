@@ -77,6 +77,7 @@ public static class EncounterRuntime
             var act = save.Acts[i]; var room = act.SerializableRooms;
             var saved = new ResolvedEncounter(i, EncounterCatalog.Key(act.Id)!, EncounterCatalog.Key(room.BossId)!, EncounterCatalog.Key(room.SecondBossId), EncounterCatalog.Key(room.AncientId));
             if (saved != plan[i] || rules[i].Act != plan[i].Act ||
+                (rules[i].SecondBoss != null && rules[i].SecondBoss != plan[i].SecondBoss) ||
                 (rules[i].Boss != null && rules[i].Boss != plan[i].Boss) ||
                 (rules[i].Ancient != null && rules[i].Ancient != plan[i].Ancient)) throw new InvalidOperationException("SelectMOD: 保存された出現結果が一致しません。再抽選せず停止します。");
             // Reject removed/deprecated targets before the game's fallback can

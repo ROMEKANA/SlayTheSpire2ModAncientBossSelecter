@@ -12,7 +12,7 @@ namespace SelectMOD;
 internal static class EncounterStartPatch
 {
     private static void Prefix(Player __0, bool __1, IReadOnlyList<ActModel> __2, ref IReadOnlyList<ModifierModel> __3,
-        GameMode __5, ref bool __6, int __7, DateTimeOffset? __8)
+        GameMode __5, int __7, DateTimeOffset? __8)
     {
         if (!ModEntry.IsActive || !__1 || __5 != GameMode.Standard || __8 != null) return;
         try
@@ -26,7 +26,7 @@ internal static class EncounterStartPatch
                 __3 = AscensionPreference.Apply(__3, __7, AscensionPreference.Read());
                 var catalog = EncounterCatalog.Build(__2, __0.UnlockState);
                 // Bind index-based UI choices to the ACTUAL randomly selected Act IDs.
-                var rules = EncounterDraft.Snapshot(catalog);
+                var rules = EncounterDraft.Snapshot(catalog, __7 == 10 && (__3.OfType<SelectAscensionSettings>().SingleOrDefault()?.Snapshot.Contains(10) ?? true));
                 var changed = EncounterRules.HasChanges(rules);
                 ModEntry.WriteLog($"SELECTION_CAPTURED changed={changed} rules={EncounterRules.Encode(rules)}");
                 if (changed)
@@ -35,7 +35,6 @@ internal static class EncounterStartPatch
                     settings.SelectEncounterSchema = EncounterRules.Schema;
                     settings.SelectEncounterRules = EncounterRules.Encode(rules);
                     __3 = __3.Append(settings).ToArray();
-                    __6 = true;
                 }
             }
         }

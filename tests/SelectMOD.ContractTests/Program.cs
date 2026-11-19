@@ -65,23 +65,30 @@ try
     var screen = new MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen();
     Engine.Tree.Root.AddChild(screen);
     var panel = Descendants<PanelContainer>(screen).Single();
-    Check(panel.AnchorLeft > 0.5f && panel.AnchorRight > 0.9f, "panel not upper-right");
+    Check(panel.AnchorLeft > 0 && panel.AnchorRight < 0.5f, "panel not upper-right");
     var toggle = Descendants<Button>(screen).Single(b => b.Name == "SelectMODToggle");
     var content = Descendants<VBoxContainer>(screen).Single(c => c.Name == "SelectMODSelectionContent");
-    Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 72, "panel not initially collapsed to header height");
+    Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 0, "panel not initially collapsed to header height");
     toggle.Press();
-    Check(content.Visible && panel.AnchorBottom > 0.8f && panel.OffsetBottom == 0, "panel did not expand");
+    Check(content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 0, "panel did not expand");
     EncounterSelectionPanel.Attach(screen);
     Check(Descendants<PanelContainer>(screen).Count() == 1, "panel attached twice");
     var options = Descendants<OptionButton>(screen).ToArray();
-    Check(options.Length == 6 && options.All(o => o.Items[0] == "ランダム"), "per-Act controls/random default missing");
+    Check(options.Length == 7 && options.All(o => o.Items[0] == "ランダム"), "per-Act controls/random default missing");
     // Real user-selection signals, no confirm dialog. Capture the stable IDs immediately.
     options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
     options[1].UserSelect(Array.IndexOf(catalog[0].Ancients, lockedAncient) + 1);
     Check(EncounterDraft.Get(0) == (EncounterCatalog.Key(variantBoss), EncounterCatalog.Key(lockedAncient)), "selection signal lost selected IDs");
+    var grip = Descendants<Button>(screen).Single(b => b.Name == "SelectMODDrag");
+    screen.Size = new Vector2(1000, 700);
+    grip.InputForTest(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true });
+    grip.InputForTest(new InputEventMouseMotion { Relative = new Vector2(90, 40) });
+    grip.InputForTest(new InputEventMouseButton { ButtonIndex = MouseButton.Left });
+    Check(panel.AnchorLeft > 0.16f && panel.AnchorTop > 0.11f, "drag did not move panel");
     var otherScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen();
     Engine.Tree.Root.AddChild(otherScreen);
     Check(Descendants<OptionButton>(otherScreen).First().Selected == options[0].Selected, "new screen lost next-run choice");
+    Check(Descendants<PanelContainer>(otherScreen).Single().AnchorLeft == panel.AnchorLeft, "drag position not restored on new screen");
     var otherOptions = Descendants<OptionButton>(otherScreen).ToArray();
     otherOptions[0].UserSelect(0);
     screen.ShowForTest();
@@ -89,15 +96,20 @@ try
     options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
     var choiceBeforeCollapse = EncounterDraft.Get(0);
     toggle.Press();
-    Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 72, "collapse retained full-height hit area");
+    Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 0, "collapse retained full-height hit area");
     Check(EncounterDraft.Get(0) == choiceBeforeCollapse && toggle.Text.Contains("指定あり"), "collapse lost selection/status");
     toggle.Press();
     Check(content.Visible && options[0].Selected > 0, "reopening lost selection");
     toggle.Press();
+    screen.Lobby = new();
+    screen.Lobby.SyncAscensionChange(10);
+    screen.AfterInitialized();
+    options[4].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
+    options[5].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
     var game = new NGame();
     var state = await game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(game.Calls == 1, "original start invoked more than once");
-    Check(state.IsCustomGame && state.AscensionLevel == 10, "changed run classification/cumulative ascension");
+    Check(!state.IsCustomGame && state.AscensionLevel == 10, "changed run classification/cumulative ascension");
     Check(state.Acts[0].BossEncounterForTest() == variantBoss, "selected alternate boss not applied");
     Check(state.Acts[0].GetRoomsDebug().Ancient == lockedAncient, "selected locked ancient not applied");
     Check(state.Acts[1].GetRoomsDebug().Boss == boss1, "unselected Act changed");
@@ -123,12 +135,17 @@ try
     var restoredModel = new SelectEncounterSettings { Id = ModelDb.GetId<SelectEncounterSettings>() };
     foreach (var p in JsonDocument.Parse(json).RootElement.EnumerateObject())
     { var property = typeof(SelectEncounterSettings).GetProperty(p.Name)!; property.SetValue(restoredModel, property.PropertyType == typeof(int) ? (object)p.Value.GetInt32() : p.Value.GetString()); }
-    var save = new SerializableRun { IsCustomGame = true, Ascension = 10, Modifiers = [new() { Id = restoredModel.Id, Value = restoredModel }] };
+    var save = new SerializableRun { IsCustomGame = state.IsCustomGame, Ascension = 10, Modifiers = [new() { Id = restoredModel.Id, Value = restoredModel }] };
     save.Acts = state.Acts.Select(a => new SerializableActModel { Id = a.Id, SerializableRooms = new() { BossId = a.GetRoomsDebug().Boss.Id, SecondBossId = a.GetRoomsDebug().SecondBoss?.Id, AncientId = a.GetRoomsDebug().HasAncient ? a.GetRoomsDebug().Ancient.Id : null } }).ToList();
     var loaded = RunState.FromSerializable(save);
     var loadManager = new RunManager();
     await loadManager.SetUpSavedSingleplayer(loaded, save);
     Check(loadManager.GameRngDraws == 0 && loaded.Acts[0].GetRoomsDebug().Boss == variantBoss, "load rerolled or lost selected result");
+    Check(!loaded.IsCustomGame && loaded.Acts[2].GetRoomsDebug().Boss == lateBoss && loaded.Acts[2].GetRoomsDebug().SecondBoss == lateBoss,
+        "ordinary saved A10 did not retain identical primary and secondary boss");
+    Check(EncounterCatalog.OriginSuffix(0, shared) == "[アクトⅡ/Ⅲ]" && EncounterCatalog.OriginSuffix(1, shared) == "" &&
+        EncounterCatalog.OriginSuffix(0, lateBoss) == "[アクトⅢ]", "origin suffix or shared native label");
+    Check(Array.IndexOf(catalog[0].Ancients, shared) > Array.IndexOf(catalog[0].Ancients, lateAncient), "Act I shared ancient not last group");
     var before = RunState.Restores;
     save.Acts[0].SerializableRooms.BossId = boss1.Id;
     Reject(() => RunState.FromSerializable(save), "mismatched saved result accepted");

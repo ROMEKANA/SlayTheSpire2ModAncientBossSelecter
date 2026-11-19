@@ -1,5 +1,9 @@
 # Validation evidence
 
+## 0.9.0 encounter selection
+
+225 independent checks/groups passed. New coverage includes identical Act III boss IDs surviving ordinary solo save/load, delivery to all simulated peers, ignoring a dormant second-boss choice with A10 off, group labels and ordering, panel drag and restored anchors, and the flame strip below the custom-screen character container. Both Godot API flavors compiled with zero warnings/errors; all five PowerShell fixture suites passed. The installed game, actual two-fight encounter completion, UI scaling and Steam multiplayer remain real-device checks.
+
 ## 0.8.0 display and distribution
 
 The owner verified solo A4 disabled and A5 enabled under the previous UI. This is gameplay evidence for that one combination. For 0.8.0, 213 independent contract checks/groups passed, including ten reserved slots, editing below the current level, rejecting above-level clicks, host-to-guest flame updates and guest input rejection. Both public Godot API builds completed without warnings/errors, and the five PowerShell fixture suites passed. Headless Godot 4.6.3 rasterized the embedded blue flame to a nonempty 64×64 image. The top bar getter, screen fit and real multiplayer still need game acceptance. The native portrait tooltip displays cumulative levels until a verified tooltip builder is available.

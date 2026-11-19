@@ -117,6 +117,10 @@ internal static class MultiplayerTests
             Check(MultiplayerSelection.HasSelectedRun(games[0].Manager), "rejected second setup erased active tracking");
             Reject(() => games[0].Manager.GetRejoinMessage(), "unsupported live rejoin");
             var save = Save(states[0]);
+            var inconsistent = Save(states[0]);
+            var unexpected = new SelectAscensionSettings { SelectAscensionSchema = AscensionSettings.CurrentSchema, SelectAscensionMask = 1 };
+            inconsistent.Modifiers.Add(new() { Id = ModelDb.GetId<SelectAscensionSettings>(), Value = unexpected });
+            Reject(() => RunState.FromSerializable(inconsistent), "saved mask contradicts frozen host settings");
             var incompleteLobby = new LoadRunLobby { Run = save, Players = new List<int> { 1 }, Ready = true };
             incompleteLobby.NetService.Type = NetGameType.Host;
             incompleteLobby.BeginRunForAllPlayersIfAllReady();

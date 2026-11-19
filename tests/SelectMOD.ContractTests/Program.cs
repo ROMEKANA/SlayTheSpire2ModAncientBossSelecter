@@ -179,6 +179,9 @@ try
         && !selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.AscendersBane), "new preference affected active run");
     selectiveGame.Manager.CleanUp();
     var stored = new SerializableRun { Ascension = 5, Modifiers = [new() { Id = frozen.Id, Value = frozen }] };
+    stored.Ascension = 1;
+    Reject(() => RunState.FromSerializable(stored), "out-of-range saved mask survived deserialization guard");
+    stored.Ascension = 5;
     var restoredAscension = RunState.FromSerializable(stored);
     await selectiveGame.Manager.SetUpSavedSingleplayer(restoredAscension, stored);
     Check(selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "save ignored its own mask");

@@ -135,10 +135,8 @@ internal static class SavedSettingsGuard
         var ids = new[] { ModelDb.GetId<SelectSettingsProbe>(), ModelDb.GetId<SelectAscensionSettings>(), ModelDb.GetId<SelectEncounterSettings>(), ModelDb.GetId<SelectLobbySettings>() };
         var models = __0.Modifiers.Where(m => ids.Contains(m.Id)).Select(ModifierModel.FromSerializable).ToArray();
         ProbeRules.ValidateSelection(models, __0.IsCustomGame, __0.GameMode, __0.Players.Count);
+        ProbeRules.ValidateAscension(models, __0.Ascension);
         foreach (var model in models.OfType<SelectEncounterSettings>())
-        {
-            if (model.SelectMultiplayerOrigin.Length != 0 && MultiplayerContract.Read(model.SelectMultiplayerOrigin).Draft.Ascension != __0.Ascension) throw new InvalidOperationException("SelectMOD: 保存アセンションが同期設定と一致しません。");
             EncounterRuntime.ValidateSaved(__0, model);
-        }
     }
 }

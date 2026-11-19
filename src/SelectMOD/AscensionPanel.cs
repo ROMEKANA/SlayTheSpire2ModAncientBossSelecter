@@ -13,7 +13,7 @@ internal static class AscensionPanel
         box.AddChild(flames);
         box.AddChild(check);
         var native = FindPanel(screen);
-        if (native != null && native is not Container)
+        if (native != null && native is not Container && !native.ClipContents)
         {
             // Use native local coordinates so layout follows the game's UI scale.
             box.AnchorLeft = box.AnchorRight = 1;

@@ -39,9 +39,21 @@ public static class ProbeRules
     public static void ValidateRun(RunState state)
     {
         ValidateSelection(state.Modifiers, state.IsCustomGame, state.GameMode, state.Players.Count);
-        foreach (var selection in state.Modifiers.OfType<SelectAscensionSettings>())
-            if ((selection.Snapshot.Mask & ~AscensionPreference.Stack(state.AscensionLevel)) != 0) throw new InvalidDataException("SelectMOD: 選択レベルを超えています。");
-        foreach (var model in state.Modifiers.OfType<SelectEncounterSettings>().Where(m => m.SelectMultiplayerOrigin.Length != 0))
-            if (MultiplayerContract.Read(model.SelectMultiplayerOrigin).Draft.Ascension != state.AscensionLevel) throw new InvalidOperationException("SelectMOD: ホストとアセンションが一致しません。");
+        ValidateAscension(state.Modifiers, state.AscensionLevel);
+    }
+
+    internal static void ValidateAscension(IEnumerable<ModifierModel> models, int level)
+    {
+        var selection = models.OfType<SelectAscensionSettings>().SingleOrDefault();
+        if (selection != null && (selection.Snapshot.Mask & ~AscensionPreference.Stack(level)) != 0)
+            throw new InvalidOperationException("SelectMOD: 選択レベルを超えています。");
+        foreach (var model in models.OfType<SelectEncounterSettings>().Where(m => m.SelectMultiplayerOrigin.Length != 0))
+        {
+            var draft = MultiplayerContract.Read(model.SelectMultiplayerOrigin).Draft;
+            var stack = AscensionPreference.Stack(level);
+            var expected = (draft.AscensionMask ?? AscensionSettings.All) & stack;
+            if (draft.Ascension != level || (selection?.Snapshot.Mask ?? stack) != expected)
+                throw new InvalidOperationException("SelectMOD: 保存アセンションがホストの開始設定と一致しません。");
+        }
     }
 }

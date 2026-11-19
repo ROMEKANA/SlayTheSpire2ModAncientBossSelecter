@@ -2,7 +2,11 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
-## Current handoff — 0.11.0
+## Current handoff — 0.11.1
+
+All-random solo starts skip encounter catalog inspection. A panel failure alone does not veto startup. Extra ascension levels are outside the ten-effect mask. Run restoration checks the frozen origin digest without comparing its historical catalog with current candidates. New multiplayer lobbies still compare catalogs. Missing vanilla Neow reward reads after another transpiler are logged.
+
+## Previous handoff — 0.11.0
 
 Owner reported being able to play and encountering trouble alongside Intent Graph. Exact installed versions/symptoms and a physical combined run remain unverified. The old owner-based rejection was reproduced. See ASCENSION_AUDIT.md for the upstream preview behavior and scalar graph limitation. Unselected room slots now retain their generated instances. Local encounter-choices.json stores stable Act-indexed next-run fixed choices on solo edits and successful host edits/reset. Incoming guest settings and save restoration do not modify preferences. Missing content falls back to random per slot.
 

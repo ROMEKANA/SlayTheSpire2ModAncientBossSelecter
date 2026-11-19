@@ -22,11 +22,12 @@ internal static class EncounterStartPatch
                 throw new InvalidOperationException("SelectMOD: 新規開始に既存の選択設定が含まれています。");
             if (ModEntry.ReadSelectionDialog())
             {
-                if (EncounterSelectionPanel.Failure != null) throw new InvalidOperationException("SelectMOD設定画面にエラーがあります: " + EncounterSelectionPanel.Failure);
                 __3 = AscensionPreference.Apply(__3, __7, AscensionPreference.Read());
+                var doubleBoss = __7 >= 10 && (__3.OfType<SelectAscensionSettings>().SingleOrDefault()?.Snapshot.Contains(10) ?? true);
+                if (!EncounterDraft.HasSelection(doubleBoss)) return;
                 var catalog = EncounterCatalog.Build(__2, __0.UnlockState);
                 // Bind index-based UI choices to the ACTUAL randomly selected Act IDs.
-                var rules = EncounterDraft.Snapshot(catalog, __7 == 10 && (__3.OfType<SelectAscensionSettings>().SingleOrDefault()?.Snapshot.Contains(10) ?? true));
+                var rules = EncounterDraft.Snapshot(catalog, doubleBoss);
                 var changed = EncounterRules.HasChanges(rules);
                 ModEntry.WriteLog($"SELECTION_CAPTURED changed={changed} rules={EncounterRules.Encode(rules)}");
                 if (changed)

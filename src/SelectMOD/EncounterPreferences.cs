@@ -14,6 +14,8 @@ internal sealed class EncounterPreferences
         choices = Load();
     }
 
+    internal bool HasSelection(bool doubleBoss) => choices.Any(c => c.Boss != null || c.Ancient != null || (doubleBoss && c.SecondBoss != null));
+
     internal LobbyChoice Get(int index) => choices.FirstOrDefault(c => c.Index == index) ?? new(index, null, null);
 
     private LobbyChoice[] Load()

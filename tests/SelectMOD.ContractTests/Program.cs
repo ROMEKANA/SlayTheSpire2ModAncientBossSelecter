@@ -295,6 +295,12 @@ try
     Check(!disabled.IsCustomGame && disabled.Modifiers.Count == 0, "disabled panel still applied draft");
     disabledGame.Manager.CleanUp();
     EncounterDraft.Reset();
+    Check(AscensionPreference.Stack(12) == AscensionSettings.All, "extra ascensions changed the ten-effect mask");
+    File.WriteAllText(Path.Combine(dir, "config.json"), """{"SelectionDialog":true}""");
+    var extended = await disabledGame.StartNewSingleplayerRun(player, true,
+        Enumerable.Repeat(acts[0], EncounterRules.MaxActs + 1).ToArray(), [], "seed", GameMode.Standard, false, 12);
+    Check(extended.AscensionLevel == 12 && extended.Modifiers.Count == 0, "all-random start intercepted extended run");
+    disabledGame.Manager.CleanUp();
     Reject(() => ProbeRules.ValidateSelection([new SelectAscensionSettings()], true, GameMode.Standard, 1), "retired ascension accepted");
     var retired = new SerializableRun { IsCustomGame = true, Modifiers = [new() { Id = ModelDb.GetId<SelectAscensionSettings>(), Value = new SelectAscensionSettings { SelectAscensionSchema = 1, SelectAscensionMask = 10 } }] };
     Reject(() => RunState.FromSerializable(retired), "retired save silently converted");

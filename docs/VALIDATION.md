@@ -131,3 +131,7 @@ Pending: actual game-reference production build, official Windows uploader execu
 Owner console output confirms actual-reference 0.6.0 build succeeded with zero warnings/errors and workspace preparation completed. No installation, upload success or gameplay acceptance follows from that. The native uploader then emitted the breakpad AppID initialization line and Windows PowerShell stopped with NativeCommandError.
 
 Agent-run regression: tests/NativeProcess.Tests.ps1 executes real child processes with the same stderr line and exit0, then a nonzero exit17; captures UTF-8, quoted/empty/trailing-slash arguments and both pipes exceeding normal buffer capacity. tests/Workshop.Tests.ps1 remains a separate orchestration double for publication identity/pending recovery and failure propagation. tests/Scripts.Tests.ps1 validates syntax and existing script behavior. Pending: corrected Windows PowerShell 5.1 run, Steam submission/visibility and subscriber/gameplay acceptance.
+
+### 0.11.1 compatibility audit
+
+The fixture passed 239 selector, panel and Harmony checks, including a completely random run with extra acts at A12 and independent validation of live and frozen catalog digests. Two peer processes agreed on the resolved multiplayer plan. Five PowerShell suites passed. For the Intent Graph preview and the remaining scalar limitation, see ASCENSION_AUDIT.md. An actual combined game run is pending.

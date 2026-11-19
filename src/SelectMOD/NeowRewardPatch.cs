@@ -32,7 +32,7 @@ internal static class NeowRewardPatch
                 matched++;
             }
         }
-        if (matched == 0) throw new InvalidOperationException("SelectMOD: Neow reward branch changed; update source evidence before continuing.");
+        if (matched == 0) ModEntry.WriteLog("NEOW_REWARD_EXTERNAL no native modifier read remains; keeping the replacement reward implementation");
         ModEntry.WriteLog($"NEOW_REWARD_PATCH modifier reads={matched}");
         return code;
     }

@@ -11,9 +11,9 @@ public static class EncounterRuntime
     private static readonly ConditionalWeakTable<RunManager, Pending> Runs = new();
     public static object? Prepare(RunManager manager, RunState state)
     {
-        if (manager.IsInProgress) throw new InvalidOperationException("SelectMOD: 前のランが終了していません。");
         var model = state.Modifiers.OfType<SelectEncounterSettings>().SingleOrDefault();
         if (model == null) return null;
+        if (manager.IsInProgress) throw new InvalidOperationException("SelectMOD: 前のランが終了していません。");
         if (model.SelectEncounterResults.Length != 0) throw new InvalidOperationException("SelectMOD: 新規ランに確定済み結果が混入しています。");
         EncounterCatalog.ValidateChoice(model.ReadRules(), EncounterCatalog.Build(state.Acts, state.UnlockState));
         model.Freeze();

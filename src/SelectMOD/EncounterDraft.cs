@@ -21,6 +21,7 @@ public static class EncounterDraft
     }
     internal static void RememberHost(LobbyChoice[] choices) => Storage.Value.Save(choices);
     public static void Reset() { Storage.Value.Save([]); ModEntry.WriteLog("SELECTION_RESET random for all Acts"); }
+    internal static bool HasSelection(bool doubleBoss) => Storage.Value.HasSelection(doubleBoss);
     public static EncounterRule[] Snapshot(EncounterAct[] catalog, bool doubleBoss = false)
     {
         var rules = catalog.Select(a => new EncounterRule(a.Index, EncounterCatalog.Key(a.Act), Get(a.Index).Boss, Get(a.Index).Ancient, doubleBoss && a.Index == 2 ? SecondBoss : null)).ToArray();

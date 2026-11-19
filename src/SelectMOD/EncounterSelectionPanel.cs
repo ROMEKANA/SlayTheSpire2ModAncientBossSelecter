@@ -126,7 +126,7 @@ public static class EncounterSelectionPanel
         if (lobby == null || lobby.GameMode != MegaCrit.Sts2.Core.Runs.GameMode.Standard) return false;
         var network = MultiplayerSelection.IsNetwork(lobby);
         var level = network ? MultiplayerSelection.PreviewLevel(lobby) ?? lobby.Ascension : lobby.Ascension;
-        return level == 10 && ((network ? MultiplayerSelection.Mask(lobby) : AscensionPreference.Read()) & 512) != 0;
+        return level >= 10 && ((network ? MultiplayerSelection.Mask(lobby) : AscensionPreference.Read()) & 512) != 0;
     }
 
     private static ModelKey? CurrentSecond(Control screen)

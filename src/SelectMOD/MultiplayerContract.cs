@@ -36,22 +36,36 @@ public static class MultiplayerContract
         Validate(envelope);
         return envelope;
     }
-    public static LobbyEnvelope Read(string json)
+    public static LobbyEnvelope Read(string json) => ReadEnvelope(json, compareCatalog: true);
+    internal static LobbyEnvelope ReadRunOrigin(string json) => ReadEnvelope(json, compareCatalog: false);
+
+    private static LobbyEnvelope ReadEnvelope(string json, bool compareCatalog)
     {
         if (string.IsNullOrWhiteSpace(json) || json.Length > EncounterRules.MaxJsonLength) throw new InvalidOperationException("SelectMOD: マルチ設定が欠落／大きすぎます。");
         LobbyEnvelope envelope;
         try { envelope = System.Text.Json.JsonSerializer.Deserialize<LobbyEnvelope>(json) ?? throw new System.Text.Json.JsonException(); }
         catch (System.Text.Json.JsonException e) { throw new InvalidOperationException("SelectMOD: マルチ設定を読み込めません。", e); }
-        Validate(envelope);
+        Validate(envelope, compareCatalog);
         if (EncounterRules.Encode(envelope) != json) throw new InvalidOperationException("SelectMOD: マルチ設定の形式が一致しません。");
         return envelope;
     }
-    private static void Validate(LobbyEnvelope envelope)
+    private static void Validate(LobbyEnvelope envelope, bool compareCatalog = true)
     {
         var draft = envelope.Draft;
-        if (draft == null || draft.Protocol != Protocol || !Guid.TryParseExact(draft.Session, "N", out _) || draft.Revision < 1 || draft.Ascension is < 0 or > 10 ||
+        if (draft == null || draft.Protocol != Protocol || !Guid.TryParseExact(draft.Session, "N", out _) || draft.Revision < 1 || draft.Ascension < 0 ||
             draft.AscensionMask is < 0 or >= AscensionSettings.All || draft.Choices == null || draft.Choices.Length is < 1 or > EncounterRules.MaxActs ||
             envelope.Digest != Hash(EncounterRules.Encode(draft))) throw new InvalidOperationException("SelectMOD: マルチ設定の版／整合性が一致しません。");
+        if (draft.Catalog?.Length != 64 || !draft.Catalog.All(Uri.IsHexDigit))
+            throw new InvalidOperationException("SelectMOD: 候補一覧の識別子が不正です。");
+        for (int i = 0; i < draft.Choices.Length; i++)
+        {
+            var c = draft.Choices[i];
+            if (c == null || c.Index != i || (c.SecondBoss != null && i != 2))
+                throw new InvalidOperationException("SelectMOD: Actの設定が不正です。");
+            c.Boss?.Validate(); c.Ancient?.Validate(); c.SecondBoss?.Validate();
+        }
+        // A saved run already has exact room IDs and checks its frozen rules on load.
+        if (!compareCatalog) return;
         if (draft.Catalog != CatalogDigest()) throw new InvalidOperationException("SelectMOD: 候補一覧／MOD版がホストと異なります。全員のゲーム・MOD構成を揃えてください。");
         var options = EncounterCatalog.BuildOptions();
         if (draft.Choices.Length != options.Length) throw new InvalidOperationException("SelectMOD: マルチ設定のAct数が一致しません。");
@@ -59,7 +73,7 @@ public static class MultiplayerContract
             : new EncounterRule(choice.Index, EncounterCatalog.Key(options[i].Act), choice.Boss, choice.Ancient, choice.SecondBoss)).ToArray();
         EncounterCatalog.ValidateChoice(rules, options);
     }
-    public static ModelKey? EffectiveSecond(LobbyDraft draft, int index) => draft.Ascension == 10 && ((draft.AscensionMask ?? AscensionSettings.All) & 512) != 0 ? draft.Choices[index].SecondBoss : null;
+    public static ModelKey? EffectiveSecond(LobbyDraft draft, int index) => draft.Ascension >= 10 && ((draft.AscensionMask ?? AscensionSettings.All) & 512) != 0 ? draft.Choices[index].SecondBoss : null;
     public static EncounterRule[] Bind(LobbyEnvelope envelope, IReadOnlyList<ActModel> acts)
     {
         Validate(envelope);

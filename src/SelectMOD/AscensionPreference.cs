@@ -22,11 +22,12 @@ internal static class AscensionPreference
         finally { File.Delete(temp); }
     }
 
-    internal static int Stack(int level) => level is >= 0 and <= 10
-        ? (1 << level) - 1 : throw new InvalidDataException("SelectMOD: 未対応のアセンションレベルです。");
+    internal static int Stack(int level) => level >= 0
+        ? (1 << Math.Min(level, 10)) - 1 : throw new InvalidDataException("SelectMOD: 未対応のアセンションレベルです。");
 
     internal static IReadOnlyList<ModifierModel> Apply(IReadOnlyList<ModifierModel> modifiers, int level, int preference)
     {
+        if (preference == AscensionSettings.All) return modifiers;
         var stack = Stack(level);
         var mask = stack & preference;
         if (mask == stack) return modifiers;

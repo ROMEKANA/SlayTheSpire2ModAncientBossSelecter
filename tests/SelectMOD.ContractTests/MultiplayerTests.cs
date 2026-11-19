@@ -215,6 +215,7 @@ internal static class MultiplayerTests
         Reject(() => MultiplayerContract.Read(EncounterRules.Encode(envelope with { Digest = "bad" })), "changed digest");
         var wrongCatalog = envelope.Draft with { Catalog = new string('A', 64) };
         Reject(() => MultiplayerContract.Read(EncounterRules.Encode(new LobbyEnvelope(wrongCatalog, MultiplayerContract.Hash(EncounterRules.Encode(wrongCatalog))))), "catalog mismatch");
+        Check(MultiplayerContract.ReadRunOrigin(EncounterRules.Encode(new LobbyEnvelope(wrongCatalog, MultiplayerContract.Hash(EncounterRules.Encode(wrongCatalog))))).Draft.Catalog == wrongCatalog.Catalog, "historical catalog prevented reading a frozen origin");
         var wrongProtocol = envelope.Draft with { Protocol = 999 };
         Reject(() => MultiplayerContract.Read(EncounterRules.Encode(new LobbyEnvelope(wrongProtocol, MultiplayerContract.Hash(EncounterRules.Encode(wrongProtocol))))), "protocol mismatch");
         Reject(() => MultiplayerSelection.ReadSnapshot([]), "missing marker");

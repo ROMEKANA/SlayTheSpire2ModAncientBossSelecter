@@ -57,6 +57,7 @@ internal static class SavedMultiplayerGuard
     private static void Prefix(RunManager __instance, RunState __0, LoadRunLobby __1, out object? __state)
     {
         __state = null;
+        if (!__0.Modifiers.Any(m => m is SelectEncounterSettings or SelectAscensionSettings or SelectLobbySettings or SelectSettingsProbe)) return;
         if (__instance.IsInProgress) throw new InvalidOperationException("SelectMOD: 前のランが終了していません。");
         ModEntry.WriteLog("MP_RESUME_ATTEMPT role=" + __1.NetService.Type);
         SavedSettingsGuard.Validate(__1.Run); ProbeRules.ValidateRun(__0);
@@ -79,7 +80,7 @@ internal static class SavedMultiplayerGuard
             foreach (var model in state.Modifiers.OfType<SelectEncounterSettings>())
             {
                 EncounterRuntime.ValidateLoaded(state, model);
-                var envelope = MultiplayerContract.Read(model.SelectMultiplayerOrigin);
+                var envelope = MultiplayerContract.ReadRunOrigin(model.SelectMultiplayerOrigin);
                 var context = MultiplayerContract.Hash(EncounterRules.Encode(new { Kind = "resume", lobby.Run.StartTime, lobby.Run.CurrentActIndex, Players = state.Players.Count, state.AscensionLevel }));
                 ModEntry.WriteLog($"MP_CONTRACT_CAPTURED digest={envelope.Digest} role={lobby.NetService.Type} phase=resume");
                 ModEntry.WriteLog("MP_START_CONTEXT digest=" + context);

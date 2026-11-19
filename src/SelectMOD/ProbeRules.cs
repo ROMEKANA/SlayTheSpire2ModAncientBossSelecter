@@ -26,7 +26,7 @@ public static class ProbeRules
             var model = encounters[0]; var rules = model.ReadRules();
             if (model.SelectMultiplayerOrigin.Length != 0)
             {
-                var origin = MultiplayerContract.Read(model.SelectMultiplayerOrigin);
+                var origin = MultiplayerContract.ReadRunOrigin(model.SelectMultiplayerOrigin);
                 if (model.SelectMultiplayerPlayers != players || players < 2 || origin.Draft.Choices.Length != rules.Length)
                     throw new InvalidOperationException("SelectMOD: 同期設定の人数／Act数が一致しません。");
                 for (var i = 0; i < rules.Length; i++)
@@ -49,7 +49,7 @@ public static class ProbeRules
             throw new InvalidOperationException("SelectMOD: 選択レベルを超えています。");
         foreach (var model in models.OfType<SelectEncounterSettings>().Where(m => m.SelectMultiplayerOrigin.Length != 0))
         {
-            var draft = MultiplayerContract.Read(model.SelectMultiplayerOrigin).Draft;
+            var draft = MultiplayerContract.ReadRunOrigin(model.SelectMultiplayerOrigin).Draft;
             var stack = AscensionPreference.Stack(level);
             var expected = (draft.AscensionMask ?? AscensionSettings.All) & stack;
             if (draft.Ascension != level || (selection?.Snapshot.Mask ?? stack) != expected)

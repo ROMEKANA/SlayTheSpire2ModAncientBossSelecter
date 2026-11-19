@@ -1,6 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [string]$PathsFile,
+    [string]$PreviewPath,
     [switch]$PrepareOnly,
     [string]$UploaderPath,
     [ValidatePattern('^[1-9][0-9]*$')][string]$WorkshopItemId,
@@ -10,12 +11,12 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
 $repo = Split-Path $PSScriptRoot -Parent
-$root = Join-Path $repo 'local/workshop'
+$root = Join-Path $repo 'local/workshop-selectmod'
 $workspace = Join-Path $root 'SelectMOD'
 if (!$PrepareOnly -and (Get-Process -Name ModUploader -ErrorAction SilentlyContinue)) {
     throw 'A ModUploader process is still running. Wait for it to finish before retrying; it may still be creating or uploading the item.'
 }
-& (Join-Path $PSScriptRoot 'Prepare-Workshop.ps1') -PathsFile $PathsFile -NoOpen:$NoOpen
+& (Join-Path $PSScriptRoot 'Prepare-Workshop.ps1') -PathsFile $PathsFile -PreviewPath $PreviewPath -NoOpen:$NoOpen
 if ($PrepareOnly) { return }
 # Share the preparation lock so another process cannot replace content during upload.
 $guard = [IO.File]::Open((Join-Path $root 'prepare.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
@@ -34,6 +35,7 @@ try {
     }
     if ($WorkshopItemId) { $knownIds += $WorkshopItemId }
     $knownIds = @($knownIds | Select-Object -Unique)
+    if ($knownIds -contains '3842017022') { throw 'This ID belongs to the retired Workshop listing.' }
     if ($knownIds.Count -gt 1) { throw 'Conflicting Workshop item IDs. No upload performed.' }
     if ($knownIds.Count -eq 1) { [IO.File]::WriteAllText($idFile, $knownIds[0]) }
     elseif ((Test-Path -LiteralPath $pending) -and !$RetryNewItem) {

@@ -4,7 +4,7 @@ Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBoss
 
 ## Distribution policy — 2026-11-20
 
-Future development and releases target standalone SelectMOD. BaseLib comparison work ended at 0.11.1. The maintainer runs Publish-Workshop.ps1 locally; it stages the current tracked title, description and cover for the existing unlisted item. Multiplayer hardware acceptance is pending.
+Future development and releases target standalone SelectMOD. BaseLib comparison work ended at 0.11.1. The maintainer runs Publish-Workshop.ps1 locally. The replacement unlisted item uses local/workshop-selectmod for identity and the user-selected cover. The old local/workshop directory belongs to the retired listing. Multiplayer hardware acceptance is pending.
 
 ## Current handoff — 0.11.1
 

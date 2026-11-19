@@ -1,10 +1,10 @@
 ﻿[CmdletBinding()]
-param([string]$PathsFile, [switch]$NoOpen)
+param([string]$PathsFile, [string]$PreviewPath, [switch]$NoOpen)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
 $repo = Split-Path $PSScriptRoot -Parent
 $local = Join-Path $repo 'local'
-$root = Join-Path $local 'workshop'
+$root = Join-Path $local 'workshop-selectmod'
 $workspace = Join-Path $root 'SelectMOD'
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 $guard = [IO.File]::Open((Join-Path $root 'prepare.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
@@ -44,8 +44,39 @@ try {
         tags = @(); dependencies = @(); contentDescriptors = @()
     }
     [IO.File]::WriteAllText((Join-Path $stage 'workshop.json'), ($metadata | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
-    Copy-Item -LiteralPath (Join-Path $repo 'workshop/image.png') -Destination $stage
-    if ((Get-Item -LiteralPath (Join-Path $stage 'image.png')).Length -ge 1MB) { throw 'Workshop preview must be smaller than 1 MB.' }
+    $savedCover = Join-Path $root 'cover.png'
+    if (!$PreviewPath -and !(Test-Path -LiteralPath $savedCover)) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $picker = New-Object System.Windows.Forms.OpenFileDialog
+        try {
+            $picker.Title = 'SelectMOD: 新しいWorkshop投稿に使用する表紙を選択'
+            $picker.Filter = 'Images|*.png;*.jpg;*.jpeg'
+            if ($picker.ShowDialog() -ne 'OK') { throw 'Cover selection cancelled.' }
+            $PreviewPath = $picker.FileName
+        } finally { $picker.Dispose() }
+    }
+    $cover = Join-Path $stage 'image.png'
+    if ($PreviewPath) {
+        Add-Type -AssemblyName System.Drawing
+        $source = [Drawing.Image]::FromFile((Resolve-Path -LiteralPath $PreviewPath).ProviderPath)
+        try {
+            $scale = [Math]::Min(1, 960 / [double][Math]::Max($source.Width, $source.Height))
+            do {
+                $bitmap = New-Object Drawing.Bitmap ([Math]::Max(1,[int]($source.Width * $scale))), ([Math]::Max(1,[int]($source.Height * $scale)))
+                try {
+                    $graphics = [Drawing.Graphics]::FromImage($bitmap)
+                    try {
+                        $graphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                        $graphics.DrawImage($source, 0, 0, $bitmap.Width, $bitmap.Height)
+                    } finally { $graphics.Dispose() }
+                    $bitmap.Save($cover, [Drawing.Imaging.ImageFormat]::Png)
+                } finally { $bitmap.Dispose() }
+                $scale *= 0.8
+            } while ((Get-Item -LiteralPath $cover).Length -ge 1MB)
+        } finally { $source.Dispose() }
+        Copy-Item -LiteralPath $cover -Destination $savedCover -Force
+    } else { Copy-Item -LiteralPath $savedCover -Destination $cover }
+    if ((Get-Item -LiteralPath $cover).Length -ge 1MB) { throw 'Workshop preview must be smaller than 1 MB.' }
     foreach ($file in @(Get-ChildItem -LiteralPath $content -File)) { $trace.Add("PAYLOAD $($file.Name) SHA256=$((Get-FileHash -LiteralPath $file.FullName).Hash)") }
     # Replace content only; durable mod_id.txt and upload-attempt state are never rebuilt.
     New-Item -ItemType Directory -Path $workspace -Force | Out-Null

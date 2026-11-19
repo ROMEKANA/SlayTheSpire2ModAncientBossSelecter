@@ -1,15 +1,18 @@
-戦いたいボス、出会いたいエンシェント、挑みたいアセンション効果を、ランごとに選べます。好きな相手だけを固定して、残りはいつものランダム抽選に任せられます。BaseLibは不要です。
+エンシェント・ボス・アセンションを自由に設定できるMODです！
 
-[h2]ボスとエンシェントを選ぶ[/h2]
-サブスクライブ後、ダウンロードが終わったらゲームを再起動し、MOD一覧でSelectMODを有効にしてください。
-キャラクター選択画面の「SelectMOD設定」を開き、各Actの相手を選んでランを開始します。名前の後ろの［アクトⅡ］などは、本来その相手が登場するActです。
-A10のダブルボスが有効なら、Act 3の副ボスまで指定できます。同じボスを2回選ぶこともできます。通常ランで選んだ場合は通常ランとして保存されます。ラン中は王冠と剣のアイコンにカーソルを合わせると、固定した相手を確認できます。
+[h2]主な機能[/h2]
+[list]
+[*][b]エンシェント・ボス選択[/b]：各Actに登場するエンシェントとボスを選べます。
+[*][b]アセンション個別設定[/b]：各効果を個別にON/OFFできます。例：A1はOFF、A2だけON。
+[/list]
+※マルチプレイにも対応するよう実装していますが、実際の動作確認はまだです。週末にフレンドとテスト予定です。
 
-[h2]アセンション効果を切り替える[/h2]
-ゲームの矢印でレベルを選び、炎をクリックしてください。左からA1～A10の順で、点灯している効果が有効です。たとえばA5のまま左から4番目の炎を消すと、ポーション枠を維持しながらA5の呪いを受けられます。
-ボス・エンシェントと炎の選択は、ゲームを閉じても記憶されます。進行中のランを再開するときは開始時の設定が使われます。デイリーではゲーム標準のアセンション効果が適用されます。
+[hr][/hr]
+A mod that lets you freely customize Ancients, bosses, and Ascension effects!
 
-[h2]友達と遊ぶ場合（実機マルチ未確認）[/h2]
-2～4人の通常マルチに対応する設計です。全員が同じゲーム版・SelectMOD・ゲームプレイMODを有効にし、ホストがロビーで選択してください。ゲストは選択内容を確認できます。保存したランの再開には元の参加者全員が必要です。途中参加・ホスト交代は未対応です。
-
-対応確認の対象はSteam Build 26660232です。
+[h2]Features[/h2]
+[list]
+[*][b]Ancient & Boss Selection[/b]: Choose which Ancients and bosses appear in each Act.
+[*][b]Individual Ascension Settings[/b]: Enable or disable each effect independently. For example, turn A1 OFF while keeping A2 ON.
+[/list]
+Multiplayer support has been implemented but hasn't been tested yet. I'm planning to test it with friends this weekend.

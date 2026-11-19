@@ -48,13 +48,18 @@ New-Item -ItemType Directory -Path $out -Force | Out-Null
     [IO.File]::WriteAllLines($paths, [string[]]@($game, (Join-Path $fixture 'save'), (Join-Path $fixture 'config')))
     $prepare = Join-Path $fixture 'scripts/Prepare-Workshop.ps1'
     $publish = Join-Path $fixture 'scripts/Publish-Workshop.ps1'
+    $legacy = New-Item -ItemType Directory -Path (Join-Path $fixture 'local/workshop/SelectMOD') -Force
+    [IO.File]::WriteAllText((Join-Path $legacy.FullName 'mod_id.txt'), '3842017022')
+    $newRoot = New-Item -ItemType Directory -Path (Join-Path $fixture 'local/workshop-selectmod') -Force
+    Copy-Item (Join-Path $fixture 'workshop/image.png') (Join-Path $newRoot.FullName 'cover.png')
     & $publish -PathsFile $paths -PrepareOnly -NoOpen
-    $workspace = Join-Path $fixture 'local/workshop/SelectMOD'
+    $workspace = Join-Path $fixture 'local/workshop-selectmod/SelectMOD'
+    Assert-True (!(Test-Path (Join-Path $workspace 'mod_id.txt'))) 'Retired item ID reused'
     $content = Join-Path $workspace 'content'
     Assert-True ((@(Get-ChildItem $content).Name | Sort-Object) -join '|' -eq 'SelectMOD.dll|SelectMOD.json') 'Non-allowlisted payload leaked'
     $metadata = Get-Content (Join-Path $workspace 'workshop.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True ($metadata.visibility -eq 'unlisted' -and !$metadata.dependencies.Count) 'Unexpected visibility/dependencies'
-    Assert-True ($metadata.description.Contains('実機マルチ未確認')) 'Description encoding damaged'
+    Assert-True ($metadata.description.Contains('実際の動作確認はまだ')) 'Description encoding damaged'
     Assert-True (!(Test-Path (Join-Path $fixture 'config')) -and !(Test-Path (Join-Path $fixture 'save'))) 'Preparation touched config/save'
     $original = [IO.File]::ReadAllText((Join-Path $content 'SelectMOD.dll'))
     New-Item -ItemType File -Path (Join-Path $fixture 'scripts/fail-build') | Out-Null
@@ -71,11 +76,11 @@ $global:LASTEXITCODE = 0
 '@)
     New-Item -ItemType File -Path (Join-Path $fixture 'upload-fails') | Out-Null
     Expect-Failure { & $publish -PathsFile $paths -UploaderPath $uploader -NoOpen } 'exit 7'
-    Assert-True (Test-Path (Join-Path $fixture 'local/workshop/upload-pending.txt')) 'Failed attempt lost duplicate-prevention marker'
+    Assert-True (Test-Path (Join-Path $fixture 'local/workshop-selectmod/upload-pending.txt')) 'Failed attempt lost duplicate-prevention marker'
     Remove-Item (Join-Path $fixture 'upload-fails')
     Expect-Failure { & $publish -PathsFile $paths -UploaderPath $uploader -NoOpen } 'previous upload may have created'
     & $publish -PathsFile $paths -UploaderPath $uploader -WorkshopItemId '123456789' -NoOpen
-    Assert-True (!(Test-Path (Join-Path $fixture 'local/workshop/upload-pending.txt'))) 'Successful upload retained pending marker'
+    Assert-True (!(Test-Path (Join-Path $fixture 'local/workshop-selectmod/upload-pending.txt'))) 'Successful upload retained pending marker'
     [IO.File]::WriteAllText((Join-Path $fixture 'workshop/title.txt'), '新版のタイトル')
     [IO.File]::WriteAllText((Join-Path $fixture 'workshop/description.txt'), '新版の説明')
     [IO.File]::WriteAllText((Join-Path $workspace 'image.png'), 'stale preview')

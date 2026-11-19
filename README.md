@@ -26,13 +26,13 @@
 
 ## Workshopで知人と0.11.1を試す
 
-1. 配布側は既存の投稿IDが保存されたチェックアウトを更新し、下記の公開コマンドで同じ限定公開アイテムを更新します。ZIPを新規展開した場合は既存の自分の投稿IDを明示してください。参考にした他MODのIDは使用しません。
+1. 初回は投稿コマンドで表紙の画像を選んでください。Steamが新しい限定公開ページを作成します。次回からはその新しい投稿IDと表紙を再利用します。
 2. 公開結果のURLを友人へ送り、全員で同じアイテムをサブスクします。Steamのダウンロード完了後にゲームを再起動し、MOD一覧で全員がSelectMOD 0.11.1を有効にしていることを確認します。Workshop配布はBaseLib不要の通常版です。
 3. 2人のStandard通常ロビーで、ホストがA5を選びA4を消し、A5を点灯させます。ゲスト側の4番目・5番目が同じ表示で、ゲストが編集できないことを確認してから全員準備完了にします。
 4. 開始時に両者のポーション枠と初期デッキを比較します。全員で保存終了し、元の参加者全員で再開して同じ効果が続くか確認してください。違いがあったら各自のログを下記の手順で回収してください。
 
 
-投稿コマンドは毎回、最新版のタイトル（workshop/title.txt）、説明（workshop/description.txt）、表紙（workshop/image.png）を既存の投稿IDに送ります。配布対応として、設定ファイルがない初回でも設定欄を使えるようにした。公開範囲は **限定公開（unlisted）**。検索向けの一般公開ではなく、リンクを知っている人が見てサブスクできる設定で、リンクの転送先もアクセスできる。「自分のみ（private）」とは違う。
+投稿コマンドは毎回、最新版のタイトル（workshop/title.txt）、説明（workshop/description.txt）、初回に選んだ表紙を送ります。配布対応として、設定ファイルがない初回でも設定欄を使えるようにした。公開範囲は **限定公開（unlisted）**。検索向けの一般公開ではなく、リンクを知っている人が見てサブスクできる設定で、リンクの転送先もアクセスできる。「自分のみ（private）」とは違う。
 
 作業場所はこのリポジトリのルート。Windows x64、既存の.NET 9 SDK、対応ゲーム本体を使う。公開するSteamアカウントでSteamを起動・ログインしておく。友人にはSDKもこのリポジトリも不要。
 
@@ -48,11 +48,11 @@ Steamに限定公開で登録する（ビルド・検査・公式ツール取得
 .\scripts\Publish-Workshop.ps1
 ```
 
-生成先は `local/workshop/SelectMOD/`。`content/` の中身は **SelectMOD.dll と SelectMOD.json の2つだけ**。手動導入先のフォルダーをそのままアップロードしない。個人用の `SelectMOD.paths.txt`、config、ログ、ゲームDLLは含めない。設定・セーブ・手動導入先はこのスクリプトでは変更しない。公開説明は [workshop/description.txt](workshop/description.txt)、画像は `workshop/image.png`。
+生成先は `local/workshop-selectmod/SelectMOD/`。`content/` の中身は **SelectMOD.dll と SelectMOD.json の2つだけ**。手動導入先のフォルダーをそのままアップロードしない。個人用の `SelectMOD.paths.txt`、config、ログ、ゲームDLLは含めない。設定・セーブ・手動導入先はこのスクリプトでは変更しない。公開説明は [workshop/description.txt](workshop/description.txt)、選択済みの画像は `local/workshop-selectmod/cover.png`。
 
 公式 [MegaCrit/sts2-mod-uploader](https://github.com/MegaCrit/sts2-mod-uploader) のWindows x64版v0.2.0を取得し、公開されたSHA256で検証してから起動する。アップロード成功後に表示されるWorkshop URLを開き、**公開範囲が限定公開になっていること**とSteam規約同意の表示を確認してから友人へURLを送る。公式ツールは項目の設定失敗を警告だけで続行する場合があるため、成功表示だけで範囲の反映を断定しない。
 
-**`local/workshop/` は消さない。** `SelectMOD/mod_id.txt` と `SelectMOD-item-id.txt` が同じ投稿への更新に必要。別PC・新しいチェックアウトへ移る場合はこのフォルダーを保持するか、既存ページのIDを指定する。
+**`local/workshop-selectmod/` は消さない。** `SelectMOD/mod_id.txt` と `SelectMOD-item-id.txt` が同じ投稿への更新に必要。別PC・新しいチェックアウトへ移る場合はこのフォルダーを保持するか、既存ページのIDを指定する。
 
 ```powershell
 .\scripts\Publish-Workshop.ps1 -WorkshopItemId 既存ページの数値ID

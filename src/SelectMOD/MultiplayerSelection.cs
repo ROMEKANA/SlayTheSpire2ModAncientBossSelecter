@@ -49,7 +49,14 @@ public static class MultiplayerSelection
     public static void InitializeHost(StartRunLobby lobby)
     {
         if (Supported(lobby) && !IsClosed(lobby) && lobby.NetService.Type == NetGameType.Host && Sessions.GetOrCreateValue(lobby).Current == null)
-            lobby.SetModifiers(lobby.Modifiers.ToArray());
+        {
+            try { lobby.SetModifiers(lobby.Modifiers.ToArray()); }
+            catch (Exception e)
+            {
+                ModEntry.WriteLog($"MP_HOST_INIT_FAILED custom={lobby.IsCustom} players={lobby.Players.Count} ascension={lobby.Ascension} {e}");
+                throw;
+            }
+        }
     }
     internal static ModelKey? SecondBoss(StartRunLobby lobby) => Sessions.GetOrCreateValue(lobby).Current?.Draft.Choices.ElementAtOrDefault(2)?.SecondBoss;
     public static void Edit(StartRunLobby lobby, int index, bool boss, ModelKey? key, bool second = false)

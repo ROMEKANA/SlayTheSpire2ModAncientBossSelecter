@@ -31,7 +31,7 @@ public sealed class SelectEncounterSettings : ModifierModel
         set { if (_results.Length != 0 && value != _results) throw new InvalidOperationException("SelectMOD: 確定結果は変更できません。"); _results = value; }
     }
     public void Freeze() { ReadRules(); _frozen = true; }
-    public override LocString Title => ProbeText.Create("encounter_title", "");
+    public override LocString Title => ProbeText.Create("encounter_title", "SelectMOD ボス・エンシェント選択");
     public override LocString Description => ProbeText.Create("encounter_description", DescribeChoices());
 
     private string DescribeChoices()

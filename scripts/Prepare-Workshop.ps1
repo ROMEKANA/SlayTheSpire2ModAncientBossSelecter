@@ -30,7 +30,7 @@ try {
     }
     $manifestPath = Join-Path $repo 'src/SelectMOD/SelectMOD.json'
     $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($manifest.id -ne 'SelectMOD' -or $manifest.version -ne '0.11.1' -or !$manifest.has_dll -or $manifest.has_pck) { throw 'Unexpected 0.11.1 payload manifest.' }
+    if ($manifest.id -ne 'SelectMOD' -or $manifest.version -ne '0.11.2' -or !$manifest.has_dll -or $manifest.has_pck) { throw 'Unexpected 0.11.2 payload manifest.' }
     $content = Join-Path $stage 'content'
     New-Item -ItemType Directory -Path $content -Force | Out-Null
     # Explicit allowlist: never copy an installed mod folder, paths, saves, logs or game DLLs.
@@ -40,7 +40,7 @@ try {
         title = [IO.File]::ReadAllText((Join-Path $repo 'workshop/title.txt')).Trim()
         description = [IO.File]::ReadAllText((Join-Path $repo 'workshop/description.txt'))
         visibility = 'unlisted'
-        changeNote = 'ボス・エンシェントの次回設定を保存。Intent Graph 2のアセンション判定との共存を改善。'
+        changeNote = 'ボス・エンシェント選択の見出しを復元。通常マルチのホスト初期化時のエラー記録を追加。'
         tags = @(); dependencies = @(); contentDescriptors = @()
     }
     [IO.File]::WriteAllText((Join-Path $stage 'workshop.json'), ($metadata | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
@@ -89,7 +89,7 @@ try {
         throw
     }
     foreach ($name in @('workshop.json', 'image.png')) { Copy-Item -LiteralPath (Join-Path $stage $name) -Destination (Join-Path $workspace $name) -Force }
-    $trace.Add('PREPARED version=0.11.1 visibility=unlisted; no installation, saves, config or Steam changes')
+    $trace.Add('PREPARED version=0.11.2 visibility=unlisted; no installation, saves, config or Steam changes')
     Write-Host "Prepared: $workspace"
     Write-Host 'Visibility: unlisted (anyone with the link). No Steam upload performed.'
     if (!$NoOpen -and $env:OS -eq 'Windows_NT') { Start-Process explorer.exe -ArgumentList ('"' + $workspace + '"') | Out-Null }

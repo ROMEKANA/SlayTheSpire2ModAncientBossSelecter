@@ -49,6 +49,14 @@ try
     var lateBoss = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "late-boss") });
     var lateAncient = ModelDb.Register(new AncientEventModel { Id = new("ANCIENT", "late-ancient") });
     acts[2].Bosses.Add(lateBoss); acts[2].Ancients.Add(lateAncient);
+    File.Delete(configPath);
+    var freshHost = new MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby { IsCustom = false, GameMode = GameMode.Standard };
+    freshHost.NetService.Type = MegaCrit.Sts2.Core.Multiplayer.Game.NetGameType.Host;
+    freshHost.AddLocalHostPlayer();
+    var initial = freshHost.Modifiers.OfType<SelectLobbySettings>().Single().Read().Draft;
+    Check(initial.Revision == 1 && initial.AscensionMask == null && initial.Choices.All(c => c.Boss == null && c.Ancient == null && c.SecondBoss == null), "first host without preference files");
+    freshHost.CleanUp(true);
+    File.WriteAllText(configPath, """{"ProbeValue":73,"SelectionDialog":true}""");
     var globalOptions = EncounterCatalog.BuildOptions();
     Check(globalOptions[0].Bosses.Contains(lateBoss) && globalOptions[0].Ancients.Contains(lateAncient), "late targets missing in Act1");
     Check(!EncounterCatalog.IsNative(0, lateBoss) && !EncounterCatalog.IsNative(0, lateAncient), "late targets not marked cross-Act");
@@ -129,6 +137,7 @@ try
     var settings = state.Modifiers.OfType<SelectEncounterSettings>().Single();
     var expectedTip = string.Join("\n", $"Act 1 エンシェント　{lockedAncient.Title.GetFormattedText()}", $"Act 1 主ボス　{variantBoss.Title.GetFormattedText()}",
         $"Act 3 主ボス　{lateBoss.Title.GetFormattedText()}", $"Act 3 副ボス　{lateBoss.Title.GetFormattedText()}");
+    Check(settings.Title.GetFormattedText() == "SelectMOD ボス・エンシェント選択", "missing encounter tooltip heading");
     Check(settings.Description.GetFormattedText() == expectedTip, "tooltip order, localization or random filtering");
     var neow = new MegaCrit.Sts2.Core.Models.Events.Neow { State = state };
     Check(neow.OptionsForTest().SequenceEqual(new[] { "standard-neow-reward" }), "SelectMOD storage suppressed normal Neow rewards");

@@ -33,7 +33,7 @@ try
     Check(brokenNeow.OptionsForTest().Count == 0, "unpatched Neow failure witness no longer reproduces");
     harmony.PatchAll(typeof(ModEntry).Assembly);
     AscensionIcon.Install(harmony);
-    Check(new SelectAscensionSettings().Icon is ImageTexture && new SelectEncounterSettings().Icon == null, "blue flame override scope");
+    Check(new SelectAscensionSettings().Icon is ImageTexture && new SelectEncounterSettings().Icon is ImageTexture && new SelectSettingsProbe().Icon == null, "blue flame override scope");
     typeof(ModEntry).GetProperty(nameof(ModEntry.IsActive))!.SetValue(null, true);
     var boss1 = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "boss1") });
     var boss2 = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "boss2") });
@@ -76,8 +76,8 @@ try
     var options = Descendants<OptionButton>(screen).ToArray();
     Check(options.Length == 7 && options.All(o => o.Items[0] == "ランダム"), "per-Act controls/random default missing");
     // Real user-selection signals, no confirm dialog. Capture the stable IDs immediately.
-    options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
-    options[1].UserSelect(Array.IndexOf(catalog[0].Ancients, lockedAncient) + 1);
+    options[1].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
+    options[0].UserSelect(Array.IndexOf(catalog[0].Ancients, lockedAncient) + 1);
     Check(EncounterDraft.Get(0) == (EncounterCatalog.Key(variantBoss), EncounterCatalog.Key(lockedAncient)), "selection signal lost selected IDs");
     var grip = Descendants<Button>(screen).Single(b => b.Name == "SelectMODDrag");
     screen.Size = new Vector2(1000, 700);
@@ -87,25 +87,25 @@ try
     Check(panel.AnchorLeft > 0.16f && panel.AnchorTop > 0.11f, "drag did not move panel");
     var otherScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen();
     Engine.Tree.Root.AddChild(otherScreen);
-    Check(Descendants<OptionButton>(otherScreen).First().Selected == options[0].Selected, "new screen lost next-run choice");
+    Check(Descendants<OptionButton>(otherScreen).ElementAt(1).Selected == options[1].Selected, "new screen lost next-run choice");
     Check(Descendants<PanelContainer>(otherScreen).Single().AnchorLeft == panel.AnchorLeft, "drag position not restored on new screen");
     var otherOptions = Descendants<OptionButton>(otherScreen).ToArray();
-    otherOptions[0].UserSelect(0);
+    otherOptions[1].UserSelect(0);
     screen.ShowForTest();
-    Check(options[0].Selected == 0, "cached screen displayed stale choice");
-    options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
+    Check(options[1].Selected == 0, "cached screen displayed stale choice");
+    options[1].UserSelect(Array.IndexOf(catalog[0].Bosses, variantBoss) + 1);
     var choiceBeforeCollapse = EncounterDraft.Get(0);
     toggle.Press();
     Check(!content.Visible && panel.AnchorBottom == panel.AnchorTop && panel.OffsetBottom == 0, "collapse retained full-height hit area");
     Check(EncounterDraft.Get(0) == choiceBeforeCollapse && toggle.Text.Contains("指定あり"), "collapse lost selection/status");
     toggle.Press();
-    Check(content.Visible && options[0].Selected > 0, "reopening lost selection");
+    Check(content.Visible && options[1].Selected > 0, "reopening lost selection");
     toggle.Press();
     screen.Lobby = new();
     screen.Lobby.SyncAscensionChange(10);
     screen.AfterInitialized();
-    options[4].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
     options[5].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
+    options[6].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
     var game = new NGame();
     var state = await game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(game.Calls == 1, "original start invoked more than once");
@@ -115,6 +115,9 @@ try
     Check(state.Acts[1].GetRoomsDebug().Boss == boss1, "unselected Act changed");
     Check(game.Manager.GameRngDraws == 7, "selection consumed additional game RNG");
     var settings = state.Modifiers.OfType<SelectEncounterSettings>().Single();
+    var expectedTip = string.Join("\n", $"Act 1 エンシェント　{lockedAncient.Title.GetFormattedText()}", $"Act 1 主ボス　{variantBoss.Title.GetFormattedText()}",
+        $"Act 3 主ボス　{lateBoss.Title.GetFormattedText()}", $"Act 3 副ボス　{lateBoss.Title.GetFormattedText()}");
+    Check(settings.Description.GetFormattedText() == expectedTip, "tooltip order, localization or random filtering");
     var neow = new MegaCrit.Sts2.Core.Models.Events.Neow { State = state };
     Check(neow.OptionsForTest().SequenceEqual(new[] { "standard-neow-reward" }), "SelectMOD storage suppressed normal Neow rewards");
     Check(state.Modifiers.Single() == settings, "Neow filtering mutated run modifiers");
@@ -163,8 +166,8 @@ try
     Reject(() => EncounterRules.Decode<EncounterRule>(new string('x', 32769)), "oversized JSON accepted");
     Reject(() => EncounterRules.Validate([new(1, original.Act, null, null)]), "invalid Act index accepted");
     // Actually start with Act3 targets in Act1 through the real panel signal path.
-    options[0].UserSelect(Array.IndexOf(catalog[0].Bosses, lateBoss) + 1);
-    options[1].UserSelect(Array.IndexOf(catalog[0].Ancients, lateAncient) + 1);
+    options[1].UserSelect(Array.IndexOf(catalog[0].Bosses, lateBoss) + 1);
+    options[0].UserSelect(Array.IndexOf(catalog[0].Ancients, lateAncient) + 1);
     var crossGame = new NGame();
     var crossState = await crossGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false);
     Check(crossState.Acts[0].GetRoomsDebug().Boss == lateBoss && crossState.Acts[0].GetRoomsDebug().Ancient == lateAncient, "cross-Act fixed selection not applied");

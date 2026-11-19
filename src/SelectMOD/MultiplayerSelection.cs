@@ -83,8 +83,7 @@ public static class MultiplayerSelection
         if (modifiers.Any(m => m is SelectEncounterSettings or SelectSettingsProbe or SelectAscensionSettings) || modifiers.OfType<SelectLobbySettings>().Count() > 1) throw new InvalidOperationException("SelectMOD: 不正なロビー設定です。");
         var session = Sessions.GetOrCreateValue(lobby);
         var envelope = MultiplayerContract.Create(session.Id, checked(session.Revision + 1), session.Draft ?? session.Current?.Draft.Choices ?? InitialChoices(), lobby.Ascension, AscensionPreference.Read());
-        var model = (SelectLobbySettings)ModelDb.Modifier<SelectLobbySettings>().ToMutable();
-        model.SelectLobbyPayload = EncounterRules.Encode(envelope); model.Freeze();
+        var model = Marker(envelope);
         // The host must explicitly become ready again after every edit. The
         // final start packet contains the complete latest snapshot regardless
         // of delayed/missing preview messages on clients.
@@ -92,6 +91,14 @@ public static class MultiplayerSelection
         modifiers = modifiers.Where(m => m is not SelectLobbySettings).Append(model).ToArray();
         session.Current = envelope; session.Revision = envelope.Draft.Revision; session.Draft = null; session.Failure = null;
     }
+    private static SelectLobbySettings Marker(LobbyEnvelope envelope)
+    {
+        var model = (SelectLobbySettings)ModelDb.Modifier<SelectLobbySettings>().ToMutable();
+        model.SelectLobbyPayload = EncounterRules.Encode(envelope);
+        model.Freeze();
+        return model;
+    }
+
     public static void Notify(StartRunLobby lobby)
     {
         var current = Sessions.GetOrCreateValue(lobby).Current;
@@ -148,7 +155,7 @@ public static class MultiplayerSelection
         }
         // A normal character screen may start with no custom modifiers of its own.
         if (!lobby.IsCustom && !models.OfType<SelectLobbySettings>().Any())
-            models = models.Concat(lobby.Modifiers.OfType<SelectLobbySettings>()).ToList();
+            models = models.Append(Marker(envelope)).ToList();
         var model = models.OfType<SelectLobbySettings>().SingleOrDefault();
         if (model == null || model.Read().Digest != envelope.Digest) throw new InvalidOperationException("SelectMOD: 開始時のホスト設定が一致しません。");
         if (lobby.Players.Count is < 2 or > MultiplayerContract.MaxPlayers) throw new InvalidOperationException("SelectMOD: この試験版のマルチは2～4人用です。");

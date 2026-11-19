@@ -2,7 +2,11 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
-## Current handoff — 0.9.0
+## Current handoff — 0.10.0
+
+The encounter icon uses a gold crown and crossed swords. Its tooltip formats only non-null run-owned rules using localized model titles, in the same ancient / boss / second-boss order as the dropdowns. The local OptionButton theme follows the supplied language-settings reference. Normal Standard lobbies may omit a modifier list when joining or starting. The host attaches a marker from the authoritative session to the final start message. The receiver still validates the complete final snapshot. The three-player fixture exercises a normal host start with an empty native modifier list and a full-party save/load.
+
+## Previous handoff — 0.9.0
 
 Normal starts retain their native classification for fixed bosses and ancients in solo and host-controlled multiplayer. A nullable SecondBoss is omitted from old-format lobby JSON when unset so saved envelope hashes remain valid. Capture it only for effective A10 in Act III; override the existing native second slot and allow explicit same-encounter pairs. Never synthesize a double boss when A10 is skipped. Candidate groups derive from model IDs and native pools. Panel grip coordinates persist locally as normalized anchors. The custom-screen flame strip tracks the character button container or BaseLib scroll container. Verify click access at the owner's resolution and play through an identical-boss pair on hardware.
 

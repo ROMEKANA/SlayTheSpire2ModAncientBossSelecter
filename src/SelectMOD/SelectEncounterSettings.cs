@@ -31,8 +31,26 @@ public sealed class SelectEncounterSettings : ModifierModel
         set { if (_results.Length != 0 && value != _results) throw new InvalidOperationException("SelectMOD: 確定結果は変更できません。"); _results = value; }
     }
     public void Freeze() { ReadRules(); _frozen = true; }
-    public override LocString Title => ProbeText.Create("encounter_title", "SelectMOD ボス・エンシェント選択");
-    public override LocString Description => ProbeText.Create("encounter_description", "キャラクター選択画面で指定した出現先を使います。確定結果はこのランに保存されます。");
+    public override LocString Title => ProbeText.Create("encounter_title", "");
+    public override LocString Description => ProbeText.Create("encounter_description", DescribeChoices());
+
+    private string DescribeChoices()
+    {
+        // The canonical model has no run-specific settings.
+        if (string.IsNullOrEmpty(_rules)) return "";
+        var lines = new List<string>();
+        foreach (var rule in ReadRules())
+        {
+            var act = $"Act {rule.Index + 1}";
+            if (rule.Ancient is { } ancient)
+                lines.Add($"{act} エンシェント　{ModelDb.GetById<AncientEventModel>(EncounterCatalog.Id(ancient)).Title.GetFormattedText()}");
+            if (rule.Boss is { } boss)
+                lines.Add($"{act} 主ボス　{ModelDb.GetById<EncounterModel>(EncounterCatalog.Id(boss)).Title.GetFormattedText()}");
+            if (rule.SecondBoss is { } second)
+                lines.Add($"{act} 副ボス　{ModelDb.GetById<EncounterModel>(EncounterCatalog.Id(second)).Title.GetFormattedText()}");
+        }
+        return string.Join("\n", lines);
+    }
     public EncounterRule[] ReadRules()
     {
         if (SelectEncounterSchema != EncounterRules.Schema) throw new InvalidOperationException("SelectMOD: 未対応の選択データです。");

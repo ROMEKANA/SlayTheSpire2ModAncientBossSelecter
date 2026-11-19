@@ -1,5 +1,9 @@
 # Validation evidence
 
+## 0.10.0 encounter presentation and normal multiplayer
+
+226 contract checks/groups passed, including exact localized fixed-choice tooltip lines and normal three-player start, guest agreement, save and resume. Both public Godot API builds (standalone and BaseLib) completed without warnings/errors, all five PowerShell fixture suites passed and headless Godot decoded the encounter icon at 64×64. Live Steam transport and the rendered game menu remain unverified.
+
 ## 0.9.0 encounter selection
 
 225 independent checks/groups passed. New coverage includes identical Act III boss IDs surviving ordinary solo save/load, delivery to all simulated peers, ignoring a dormant second-boss choice with A10 off, group labels and ordering, panel drag and restored anchors, and the flame strip below the custom-screen character container. Both Godot API flavors compiled with zero warnings/errors; all five PowerShell fixture suites passed. The installed game, actual two-fight encounter completion, UI scaling and Steam multiplayer remain real-device checks.

@@ -7,6 +7,7 @@ namespace SelectMOD;
 internal static class AscensionIcon
 {
     private static Texture2D? texture;
+    private static Texture2D? encounterIcon;
     internal static void Install(Harmony harmony)
     {
         // Optional presentation hook. A renamed getter must not prevent gameplay startup.
@@ -21,6 +22,21 @@ internal static class AscensionIcon
 
     private static bool GetIcon(ModifierModel __instance, ref Texture2D __result)
     {
+        if (__instance is SelectEncounterSettings)
+        {
+            // A gold crown over crossed blades distinguishes encounter choices from ascension.
+            encounterIcon ??= Render("""
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+                  <path fill="#bcd8dd" stroke="#192a34" stroke-width="3" d="m8 5 10 5 34 40-5 5L12 17Zm48 0-10 5-34 40 5 5 35-38Z"/>
+                  <path fill="#75522f" stroke="#f4c968" stroke-width="3" d="m8 49 9 9 4-4-9-9Zm35 5 4 4 9-9-4-4Z"/>
+                  <path fill="#d69434" stroke="#30282a" stroke-width="4" stroke-linejoin="round" d="m10 21 13 8 9-17 9 17 13-8-7 24H17Z"/>
+                  <path fill="#ffdf82" d="M18 37h28l-2 5H20Z"/><path fill="#683d46" d="m32 25 5 6-5 5-5-5Z"/>
+                </svg>
+                """);
+            if (encounterIcon == null) return true;
+            __result = encounterIcon;
+            return false;
+        }
         if (__instance is not SelectAscensionSettings) return true;
         if (texture == null)
         {
@@ -31,11 +47,16 @@ internal static class AscensionIcon
                   <path fill="#bdfaff" d="M32 55c-7 0-10-5-8-11 2 3 4 3 6 3-1-5 4-9 6-15 7 11 7 22-4 23Z"/>
                 </svg>
                 """;
-            using var image = new Image();
-            if (image.LoadSvgFromString(svg) != Error.Ok) return true;
-            texture = ImageTexture.CreateFromImage(image);
+            texture = Render(svg);
+            if (texture == null) return true;
         }
         __result = texture;
         return false;
+    }
+
+    internal static Texture2D? Render(string svg)
+    {
+        using var image = new Image();
+        return image.LoadSvgFromString(svg) == Error.Ok ? ImageTexture.CreateFromImage(image) : null;
     }
 }

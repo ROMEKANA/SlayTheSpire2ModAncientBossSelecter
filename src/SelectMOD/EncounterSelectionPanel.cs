@@ -85,10 +85,10 @@ public static class EncounterSelectionPanel
             foreach (var act in catalog)
             {
                 string BossTitle(EncounterModel m) => m.Title.GetFormattedText() + EncounterCatalog.OriginSuffix(act.Index, m);
+                AddChoice(screen, list, $"Act {act.Index + 1} エンシェント", act.Index, false, act.Ancients, m => m.Title.GetFormattedText() + EncounterCatalog.OriginSuffix(act.Index, m), controls, refresh, UpdateStatus);
                 AddChoice(screen, list, $"Act {act.Index + 1} 主ボス", act.Index, true, act.Bosses, BossTitle, controls, refresh, UpdateStatus);
                 if (act.Index == 2)
                     AddChoice(screen, list, "Act 3 副ボス", 2, true, act.Bosses, BossTitle, controls, refresh, UpdateStatus, second: true);
-                AddChoice(screen, list, $"Act {act.Index + 1} エンシェント", act.Index, false, act.Ancients, m => m.Title.GetFormattedText() + EncounterCatalog.OriginSuffix(act.Index, m), controls, refresh, UpdateStatus);
             }
             var reset = new Button { Name = "SelectMODRandomReset", Text = "全てランダムに戻す", CustomMinimumSize = new Vector2(0, 30) };
             reset.Pressed += () => {
@@ -146,6 +146,7 @@ public static class EncounterSelectionPanel
         var row = new HBoxContainer();
         row.AddChild(new Label { Text = label, CustomMinimumSize = new Vector2(155, 0) });
         var choice = new OptionButton { FitToLongestItem = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 30) };
+        EncounterChoiceStyle.Apply(choice);
         choice.GetPopup().AddThemeFontSizeOverride("font_size", 17);
         choice.AddItem("ランダム");
         foreach (var candidate in candidates) choice.AddItem(title(candidate));

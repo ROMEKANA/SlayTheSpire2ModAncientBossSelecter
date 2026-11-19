@@ -27,7 +27,11 @@ internal static class MultiplayerJoinPatch
     private static void Postfix(StartRunLobby __instance)
     {
         if (__instance.NetService.Type == NetGameType.Client && MultiplayerSelection.Supported(__instance))
-            try { MultiplayerSelection.Accept(__instance, __instance.Modifiers, false); }
+            try
+            {
+                if (!__instance.IsCustom && !__instance.Modifiers.Any()) return;
+                MultiplayerSelection.Accept(__instance, __instance.Modifiers, false);
+            }
             catch (Exception e) { MultiplayerSelection.Reject(__instance, e.Message); }
     }
 }

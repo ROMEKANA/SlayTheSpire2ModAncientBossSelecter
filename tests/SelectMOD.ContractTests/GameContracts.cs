@@ -259,6 +259,15 @@ namespace MegaCrit.Sts2.Core.Odds { public static class CardRarityOdds { public 
 #if !ACTUAL_GODOT
 namespace Godot
 {
+    public enum HorizontalAlignment { Center }
+    public record struct Color(string Html);
+    public class StyleBoxFlat { public Color BgColor; public float ContentMarginLeft, ContentMarginRight, ContentMarginTop, ContentMarginBottom; }
+    public class Theme {
+        public void SetStylebox(string name, string type, StyleBoxFlat style) { }
+        public void SetColor(string name, string type, Color color) { }
+        public void SetConstant(string name, string type, int value) { }
+        public void SetIcon(string name, string type, Texture2D icon) { }
+    }
     public enum Error { Ok }
     public class Texture2D { }
     public class Image : IDisposable { public Error LoadSvgFromString(string svg) => Error.Ok; public void Dispose() { } }
@@ -285,7 +294,7 @@ namespace Godot
     public enum MouseButton { Left }
     public class InputEventMouseButton : InputEvent { public MouseButton ButtonIndex; public bool Pressed; }
     public class InputEventMouseMotion : InputEvent { public Vector2 Relative; }
-    public class Control : Node {
+    public class Control : Node { public Theme? Theme { get; set; }
         public event Action? Resized;
         public void ResizeForTest() => Resized?.Invoke();
         public Vector2 GlobalPosition { get; set; }
@@ -312,7 +321,7 @@ namespace Godot
     public class Container : Control { } public class PanelContainer : Container { } public class MarginContainer : Control { }
     public class VBoxContainer : Control { } public class HBoxContainer : Control { } public class ScrollContainer : Control { }
     public class Label : Control { public string Text { get; set; } = ""; public TextServer.AutowrapMode AutowrapMode { get; set; } }
-    public class OptionButton : Control { public bool Disabled { get; set; } public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
+    public class OptionButton : Control { public HorizontalAlignment Alignment { get; set; } public bool Disabled { get; set; } public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
     public class CheckBox : Button { public bool ButtonPressed { get; set; } public void SetPressedNoSignal(bool value) => ButtonPressed = value; }
     public class Button : Control { public bool ClipText { get; set; } public bool Disabled { get; set; } public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
     public class AcceptDialog : Control

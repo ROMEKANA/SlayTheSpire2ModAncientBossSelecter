@@ -37,7 +37,7 @@ public static class ModEntry
             AscensionIcon.Install(harmony);
             EncounterSelectionPanel.Install();
             IsActive = true;
-            WriteLog("INITIALIZED version=0.9.0 normal/custom selectable ascension; host-owned multiplayer settings");
+            WriteLog("INITIALIZED version=0.10.0 normal/custom selectable ascension; host-owned multiplayer settings");
         }
         catch (Exception e)
         {

@@ -57,6 +57,11 @@ internal static class MultiplayerTests
         for (var count = 2; count <= 4; count++)
         {
             var host = Lobby(NetGameType.Host, count); var clients = Enumerable.Range(1, count - 1).Select(_ => Lobby(NetGameType.Client, count)).ToArray();
+            if (count == 3)
+            {
+                host.IsCustom = false;
+                foreach (var client in clients) client.IsCustom = false;
+            }
             var deliver = true;
             host.OnPreview = models => { if (deliver) foreach (var client in clients) client.HandleModifiersChangedMessage(new LobbyModifiersChangedMessage { modifiers = Wire(models) }, 1); };
             host.Ready = true; host.AddLocalHostPlayer();
@@ -119,8 +124,8 @@ internal static class MultiplayerTests
                 var game = new NGame(); games.Add(game);
                 states.Add(game.StartNewMultiplayerRun(players, host, true, acts, models, "seed", 10).GetAwaiter().GetResult());
             };
-            host.BeginRunForAllPlayers("seed", host.Modifiers.ToList());
-            Check(states.Count == count, "not every peer started");
+            host.BeginRunForAllPlayers("seed", host.IsCustom ? host.Modifiers.ToList() : []);
+            Check(states.Count == count && states.All(s => s.IsCustomGame == host.IsCustom), "start lost normal/custom classification");
             Check(states.All(s => s.Acts[0].GetRoomsDebug().Boss.Id == targetBoss.Id && s.Acts[0].GetRoomsDebug().Ancient.Id == targetAncient.Id), "peers did not use host choices");
             Check(states.Select(s => s.Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults).Distinct().Count() == 1, "peer result plans differ");
             Check(states.All(s => s.Acts[2].GetRoomsDebug().Boss.Id == targetBoss.Id && s.Acts[2].GetRoomsDebug().SecondBoss?.Id == targetBoss.Id), "guest lost same-boss A10 selection");
@@ -148,7 +153,7 @@ internal static class MultiplayerTests
             var load = new RunManager(); var loadLobby = new LoadRunLobby { Run = save, Players = save.Players.ToList() };
             loadLobby.NetService.Type = NetGameType.Client;
             await load.SetUpSavedMultiplayer(restored, loadLobby);
-            Check(load.GameRngDraws == 0 && restored.Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults == states[0].Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults, "save/load rerolled or lost results");
+            Check(restored.IsCustomGame == host.IsCustom && load.GameRngDraws == 0 && restored.Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults == states[0].Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults, "save/load rerolled or lost results");
             var restoredModel = restored.Modifiers.OfType<SelectEncounterSettings>().Single();
             Reject(() => restoredModel.SelectMultiplayerOrigin = "changed", "loaded origin changed");
             Reject(() => new RunManager().SetUpSavedSingleplayer(restored, save), "multiplayer save in solo");

@@ -54,7 +54,7 @@ New-Item -ItemType Directory -Path $out -Force | Out-Null
     Assert-True ((@(Get-ChildItem $content).Name | Sort-Object) -join '|' -eq 'SelectMOD.dll|SelectMOD.json') 'Non-allowlisted payload leaked'
     $metadata = Get-Content (Join-Path $workspace 'workshop.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True ($metadata.visibility -eq 'unlisted' -and !$metadata.dependencies.Count) 'Unexpected visibility/dependencies'
-    Assert-True ($metadata.description.Contains('SelectMOD 0.9.0')) 'Description encoding damaged'
+    Assert-True ($metadata.description.Contains('SelectMOD 0.10.0')) 'Description encoding damaged'
     Assert-True (!(Test-Path (Join-Path $fixture 'config')) -and !(Test-Path (Join-Path $fixture 'save'))) 'Preparation touched config/save'
     $original = [IO.File]::ReadAllText((Join-Path $content 'SelectMOD.dll'))
     New-Item -ItemType File -Path (Join-Path $fixture 'scripts/fail-build') | Out-Null

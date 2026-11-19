@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-    <Version>0.10.0</Version>
+    <Version>0.10.1</Version>
     <GameAssemblyPath Condition="'$(GameAssemblyPath)' == ''">$(GameDataDir)/sts2.dll</GameAssemblyPath>
     <HarmonyAssemblyPath Condition="'$(HarmonyAssemblyPath)' == ''">$(GameDataDir)/0Harmony.dll</HarmonyAssemblyPath>
     <GodotAssemblyPath Condition="'$(GodotAssemblyPath)' == ''">$(GameDataDir)/GodotSharp.dll</GodotAssemblyPath>

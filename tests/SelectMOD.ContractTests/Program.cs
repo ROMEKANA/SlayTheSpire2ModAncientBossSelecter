@@ -196,14 +196,30 @@ try
     Check(AscensionPreference.Read() == (AscensionSettings.All ^ 16), "direct toggles changed other bits");
     screen.Lobby.SyncAscensionChange(4);
     Check(!flames[4].Visible && flames[3].Visible, "arrow did not refresh available slots");
+    // Intent Graph 2 normally delegates both queries; its bestiary temporarily supplies a scalar.
+    var graph = new Harmony("fixture.intentgraph2");
+    foreach (var target in new[] { AccessTools.Method(typeof(RunManager), "HasAscension"),
+        AccessTools.Method(typeof(MegaCrit.Sts2.Core.Entities.Ascension.AscensionManager), "HasLevel") })
+        graph.Patch(target, prefix: new HarmonyMethod(typeof(GraphPreviewFixture), nameof(GraphPreviewFixture.Prefix)));
+    MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds = 0.72f;
     var selectiveGame = new NGame();
     var selective = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 5);
     var frozen = selective.Modifiers.OfType<SelectAscensionSettings>().Single();
     Check(!selective.IsCustomGame && selective.AscensionLevel == 5 && frozen.Snapshot.Mask == 15, "ordinary A5 mask/classification");
+    Check(MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds == 0.72f, "external A7 cache during run");
+    GraphPreviewFixture.Level = 9;
+    var a9 = MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.DeadlyEnemies;
+    Check(selectiveGame.Manager.HasAscension(a9) && selectiveGame.Manager.AscensionManager.HasLevel(a9), "foreign A9 preview suppressed");
+    GraphPreviewFixture.Level = 0;
+    Check(!selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "foreign A0 preview suppressed");
+    GraphPreviewFixture.Level = null;
+    Check(!selectiveGame.Manager.HasAscension(a9), "temporary preview leaked into gameplay");
     AscensionPreference.Write(0);
     Check(selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt)
         && !selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.AscendersBane), "new preference affected active run");
     selectiveGame.Manager.CleanUp();
+    Check(MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds == 0.72f, "external A7 cache after cleanup");
+    MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds = 0.6f;
     var stored = new SerializableRun { Ascension = 5, Modifiers = [new() { Id = frozen.Id, Value = frozen }] };
     stored.Ascension = 1;
     Reject(() => RunState.FromSerializable(stored), "out-of-range saved mask survived deserialization guard");
@@ -287,3 +303,14 @@ finally
     Environment.SetEnvironmentVariable("SELECTMOD_CONFIG_DIR", null); Directory.Delete(dir, true);
 }
 static class TestAccess { public static EncounterModel BossEncounterForTest(this ActModel act) => act.GetRoomsDebug().Boss; }
+
+static class GraphPreviewFixture
+{
+    public static int? Level;
+    public static bool Prefix(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel __0, ref bool __result)
+    {
+        if (!Level.HasValue) return true;
+        __result = Level.Value >= (int)__0;
+        return false;
+    }
+}

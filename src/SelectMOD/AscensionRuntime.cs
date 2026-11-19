@@ -29,7 +29,7 @@ public static class AscensionRuntime
         var model = state.Modifiers.OfType<SelectAscensionSettings>().SingleOrDefault();
         if (model == null) return null;
         ModEntry.WriteLog($"ASCENSION_PREPARE level={state.AscensionLevel} mask={model.Snapshot.Mask}");
-        VerifyPatchOwners();
+        LogSharedHooks();
         RuntimeHelpers.RunClassConstructor(typeof(CardRarityOdds).TypeHandle);
         Release(manager);
         var binding = new Binding(model.Freeze(), state);
@@ -47,19 +47,27 @@ public static class AscensionRuntime
         // other dynamic HasAscension consumers. Override only for this run.
         binding.OriginalCommonOdds = CardRarityOdds.regularCommonOdds;
         binding.AppliedCommonOdds = binding.Settings.Contains(7) ? 0.615f : 0.6f;
-        CardRarityOdds.regularCommonOdds = binding.AppliedCommonOdds;
-        binding.OddsApplied = true;
+        if (binding.OriginalCommonOdds is 0.6f or 0.615f)
+        {
+            CardRarityOdds.regularCommonOdds = binding.AppliedCommonOdds;
+            binding.OddsApplied = true;
+        }
+        else ModEntry.WriteLog("ASCENSION_RARITY_EXTERNAL preserving customized cache");
         var observed = 0;
+        var runObserved = 0;
         for (var level = 1; level <= 10; level++)
+        {
             if (binding.Manager.HasLevel((AscensionLevel)level)) observed |= 1 << (level - 1);
-        if (observed != binding.Settings.Mask)
-            throw new InvalidOperationException("SelectMOD: アセンション判定が設定と一致しません。");
+            if (manager.HasAscension((AscensionLevel)level)) runObserved |= 1 << (level - 1);
+        }
+        if (observed != binding.Settings.Mask || runObserved != binding.Settings.Mask)
+            throw new InvalidOperationException($"SelectMOD: アセンション判定が設定と一致しません（設定={binding.Settings.Mask}, HasLevel={observed}, HasAscension={runObserved}）。");
         ModEntry.WriteLog($"ASCENSION_BOUND mask={binding.Settings.Mask} observedMask={observed} enabled={binding.Settings.Describe()}");
     }
 
-    public static bool TryGet(RunManager manager, out AscensionSettings settings)
+    public static bool TryGetEarly(RunManager manager, out AscensionSettings settings)
     {
-        if (manager.IsInProgress && Runs.TryGetValue(manager, out var binding)) { settings = binding.Settings; return true; }
+        if (manager.IsInProgress && Runs.TryGetValue(manager, out var binding) && binding.Manager == null) { settings = binding.Settings; return true; }
         settings = default;
         return false;
     }
@@ -87,7 +95,7 @@ public static class AscensionRuntime
         }
         Runs.Remove(manager);
     }
-    private static void VerifyPatchOwners()
+    private static void LogSharedHooks()
     {
         foreach (var method in new[] {
             AccessTools.Method(typeof(AscensionManager), nameof(AscensionManager.HasLevel)),
@@ -95,7 +103,7 @@ public static class AscensionRuntime
         {
             var others = Harmony.GetPatchInfo(method)?.Owners.Where(owner => owner != ModEntry.Owner).ToArray() ?? [];
             if (others.Length != 0)
-                throw new InvalidOperationException("SelectMOD: 他MODのアセンション判定と競合しています: " + string.Join(", ", others));
+                ModEntry.WriteLog($"ASCENSION_SHARED_HOOK method={method.Name} owners={string.Join(", ", others)}");
         }
     }
 }
@@ -103,22 +111,22 @@ public static class AscensionRuntime
 [HarmonyPatch(typeof(AscensionManager), nameof(AscensionManager.HasLevel), new[] { typeof(AscensionLevel) })]
 internal static class IndependentLevelPatch
 {
-    private static bool Prefix(AscensionManager __instance, AscensionLevel __0, ref bool __result)
+    [HarmonyPriority(Priority.First)]
+    private static void Postfix(AscensionManager __instance, AscensionLevel __0, bool __runOriginal, ref bool __result)
     {
-        if ((int)__0 is < 1 or > 10 || !AscensionRuntime.TryGet(__instance, out var settings)) return true;
-        __result = settings.Contains((int)__0);
-        return false;
+        if (__runOriginal && (int)__0 is >= 1 and <= 10 && AscensionRuntime.TryGet(__instance, out var settings))
+            __result &= settings.Contains((int)__0);
     }
 }
 
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.HasAscension), new[] { typeof(AscensionLevel) })]
 internal static class IndependentRunQueryPatch
 {
-    private static bool Prefix(RunManager __instance, AscensionLevel __0, ref bool __result)
+    [HarmonyPriority(Priority.First)]
+    private static void Postfix(RunManager __instance, AscensionLevel __0, bool __runOriginal, ref bool __result)
     {
-        if ((int)__0 is < 1 or > 10 || !AscensionRuntime.TryGet(__instance, out var settings)) return true;
-        __result = settings.Contains((int)__0);
-        return false;
+        if (__runOriginal && (int)__0 is >= 1 and <= 10 && AscensionRuntime.TryGetEarly(__instance, out var settings))
+            __result = settings.Contains((int)__0);
     }
 }
 

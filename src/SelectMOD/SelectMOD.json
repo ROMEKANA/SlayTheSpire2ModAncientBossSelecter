@@ -3,7 +3,7 @@
   "name": "SelectMOD",
   "author": "ROMEKANA",
   "description": "通常・カスタムランでアセンション効果を個別選択。ボス・エンシェント指定にも対応。マルチは全員同じ版が必要。",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "has_dll": true,
   "has_pck": false,
   "affects_gameplay": true,

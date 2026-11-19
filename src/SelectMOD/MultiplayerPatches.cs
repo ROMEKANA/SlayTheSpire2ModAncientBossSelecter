@@ -85,8 +85,7 @@ internal static class MultiplayerStartPatch
             }
             if (!ModEntry.IsActive || !__2 || __0.Count != __1.Players.Count || __0.Count is < 2 or > MultiplayerContract.MaxPlayers)
                 throw new InvalidOperationException("SelectMOD: 未対応のマルチ開始条件です。");
-            __state = MultiplayerSelection.ReadSnapshot(__4).Digest;
-            __4 = MultiplayerSelection.Bind(__1, __3, __4, __0.Count, out __6);
+            __4 = MultiplayerSelection.Bind(__1, __3, __4, __0.Count, out __6, out __state);
             var context = MultiplayerContract.Hash(EncounterRules.Encode(new { Seed = __5, Ascension = __6, Players = __0.Select(p => p.NetId).ToArray(), Acts = __3.Select(EncounterCatalog.Key).ToArray() }));
             ModEntry.WriteLog("MP_START_CONTEXT digest=" + context);
         }

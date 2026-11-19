@@ -156,6 +156,27 @@ internal static class MultiplayerTests
             if (count == 2) checks += await ProcessPeers(final.OfType<SerializedModifier>().Single().Value as SelectLobbySettings ?? throw new Exception(), acts, players, states[0]);
             EncounterDraft.Set(0, true, EncounterCatalog.Key(targetBoss));
         }
+        var normalHost = Lobby(NetGameType.Host);
+        var normalClient = Lobby(NetGameType.Client);
+        normalHost.IsCustom = normalClient.IsCustom = false;
+        AscensionPreference.Write(3);
+        normalHost.AddLocalHostPlayer();
+        var hostPacket = Wire(normalHost.Modifiers);
+        AscensionPreference.Write(AscensionSettings.All);
+        normalClient.HandleLobbyBeginRunMessage(new() { modifiers = hostPacket, playersInLobby = [1, 2], seed = "mask" }, 1);
+        var peerGame = new NGame();
+        var peer = await peerGame.StartNewMultiplayerRun([new Player(), new Player()], normalClient, true, acts,
+            [], "mask", 0);
+        Check(!peer.IsCustomGame && peer.AscensionLevel == 10 && peer.Modifiers.OfType<SelectAscensionSettings>().Single().Snapshot.Mask == 3,
+            "normal guest used local preferences instead of final host mask");
+        Check(!peer.Acts.Last().GetRoomsDebug().HasSecondBoss, "guest A10 was not suppressed");
+        peerGame.Manager.CleanUp();
+        var daily = await peerGame.StartNewMultiplayerRun([new Player(), new Player()], normalClient, true, acts,
+            hostPacket.Select(m => m.Value).ToArray(), "daily", 10, DateTimeOffset.UtcNow);
+        Check(daily.Modifiers.Count == 0 && daily.Acts.Last().GetRoomsDebug().HasSecondBoss, "network daily did not retain full stack");
+        peerGame.Manager.CleanUp();
+        normalHost.CleanUp(false);
+        normalClient.CleanUp(false);
         var invalidHost = Lobby(NetGameType.Host); invalidHost.AddLocalHostPlayer();
         var envelope = ((SelectLobbySettings)invalidHost.Modifiers.Single()).Read();
         SelectLobbySettings Marker(LobbyEnvelope value) => new() { SelectLobbyPayload = EncounterRules.Encode(value) };

@@ -160,11 +160,49 @@ try
     var vanillaState = await vanillaGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(!vanillaState.IsCustomGame && vanillaState.Modifiers.Count == 0 && vanillaState.AscensionLevel == 10, "random start altered standard run");
     vanillaGame.Manager.CleanUp();
+    screen.Lobby = new();
+    screen.Lobby.SyncAscensionChange(5);
+    screen.AfterInitialized();
+    var ascCheck = Descendants<CheckBox>(screen).Single();
+    Check(!ascCheck.Disabled && ascCheck.ButtonPressed, "default A5 checkbox");
+    ascCheck.SetPressedNoSignal(false);
+    ascCheck.Press();
+    Check(AscensionPreference.Read() == (AscensionSettings.All ^ 16), "checkbox did not persist A5 off");
+    screen.Lobby.SyncAscensionChange(4);
+    Check(ascCheck.ButtonPressed && ascCheck.Text.Contains("A4"), "vanilla arrow did not refresh checkbox");
+    var selectiveGame = new NGame();
+    var selective = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 5);
+    var frozen = selective.Modifiers.OfType<SelectAscensionSettings>().Single();
+    Check(!selective.IsCustomGame && selective.AscensionLevel == 5 && frozen.Snapshot.Mask == 15, "ordinary A5 mask/classification");
+    AscensionPreference.Write(0);
+    Check(selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt)
+        && !selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.AscendersBane), "new preference affected active run");
+    selectiveGame.Manager.CleanUp();
+    var stored = new SerializableRun { Ascension = 5, Modifiers = [new() { Id = frozen.Id, Value = frozen }] };
+    var restoredAscension = RunState.FromSerializable(stored);
+    await selectiveGame.Manager.SetUpSavedSingleplayer(restoredAscension, stored);
+    Check(selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "save ignored its own mask");
+    selectiveGame.Manager.CleanUp();
+    var allOff = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, true, 10);
+    Check(allOff.Modifiers.OfType<SelectAscensionSettings>().Single().Snapshot.Mask == 0 && !allOff.Acts.Last().GetRoomsDebug().HasSecondBoss, "A10 off/custom all-off");
+    selectiveGame.Manager.CleanUp();
+    for (int mask = 0; mask <= AscensionSettings.All; mask++)
+        for (int level = 0; level <= 10; level++)
+        {
+            var modifiers = AscensionPreference.Apply([], level, mask);
+            var expected = mask & ((1 << level) - 1);
+            var filtered = modifiers.OfType<SelectAscensionSettings>().SingleOrDefault();
+            if (expected == (1 << level) - 1 ? filtered != null : filtered?.Snapshot.Mask != expected)
+                throw new Exception($"Wrong projection mask={mask} level={level}");
+        }
+    checks++;
     EncounterDraft.Set(0, true, EncounterCatalog.Key(variantBoss));
     var dailyGame = new NGame();
-    var daily = await dailyGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 0, DateTimeOffset.UtcNow);
+    var daily = await dailyGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10, DateTimeOffset.UtcNow);
     Check(daily.Modifiers.Count == 0 && !daily.IsCustomGame, "daily start captured normal draft");
+    Check(daily.Acts.Last().GetRoomsDebug().HasSecondBoss, "daily lost A10");
     dailyGame.Manager.CleanUp();
+    AscensionPreference.Write(AscensionSettings.All);
     var disabledGame = new NGame();
     File.WriteAllText(Path.Combine(dir, "config.json"), "{\"ProbeValue\":73,\"SelectionDialog\":false}");
     var disabled = await disabledGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false);

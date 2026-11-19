@@ -2,7 +2,11 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
-## Owner's goal
+## Current handoff — 0.7.2
+
+Owner confirmed the 0.6.0 Workshop upload succeeded. Do not repeat publication. Multiplayer hardware testing is scheduled for the weekend. The development checkout now implements normal/custom ascension selection. See [the implementation history and acceptance cases](ASCENSION_AUDIT.md#normal-and-custom-runs-in-072). Use the existing Setup entry point on the reviewed installation for the first game-referenced build and solo smoke test. No new Workshop upload was requested.
+
+## Prior handoff — 0.6.0
 
 Distribute the current SelectMOD 0.6.0 gameplay build through Steam Workshop as an unlisted item and share the subscription link with friends. Unlisted means anyone with the link can access it. Current priority is verifying publication and subscription, then testing multiplayer with friends. The owner deferred ordinary-run classification and individual ascension toggles.
 

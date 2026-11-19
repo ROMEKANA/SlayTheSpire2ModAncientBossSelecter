@@ -9,21 +9,34 @@ internal static class AscensionPanel
     {
         var flames = new Label();
         var check = new CheckBox { Name = "SelectMODAscensionCheck" };
-        list.AddChild(flames);
-        list.AddChild(check);
+        var box = new VBoxContainer { Name = "SelectMODAscensionControls" };
+        box.AddChild(flames);
+        box.AddChild(check);
+        var native = FindPanel(screen);
+        if (native != null && native is not Container)
+        {
+            // Use native local coordinates so layout follows the game's UI scale.
+            box.AnchorLeft = box.AnchorRight = 1;
+            box.OffsetLeft = 8;
+            native.AddChild(box);
+        }
+        else list.AddChild(box);
 
         void Sync()
         {
             var lobby = MultiplayerSelection.GetLobby(screen);
             var network = MultiplayerSelection.IsNetwork(lobby);
             var level = lobby?.Ascension ?? 0;
+            if (network && !MultiplayerSelection.Editable(lobby!) && MultiplayerSelection.PreviewLevel(lobby!) is int preview)
+                level = preview;
             var mask = network ? MultiplayerSelection.Mask(lobby!) : AscensionPreference.Read();
             var available = lobby?.GameMode == GameMode.Standard && level is >= 1 and <= 10;
             check.Disabled = !available || (network && !MultiplayerSelection.Editable(lobby!));
             check.Text = available ? $"A{level} の効果を使う" : "レベルを選ぶと効果を切り替えられます";
             check.SetPressedNoSignal(available && (mask & (1 << (level - 1))) != 0);
-            flames.Text = "アセンション  " + string.Join(" ", Enumerable.Range(1, Math.Clamp(level, 0, 10))
-                .Select(n => (mask & (1 << (n - 1))) != 0 ? "🔥" : "○"));
+            var maximum = ReadMaximum(native) ?? ReadMaximum(lobby) ?? level;
+            flames.Text = "アセンション  " + string.Join(" ", Enumerable.Range(1, Math.Clamp(Math.Max(level, maximum), 0, 10))
+                .Select(n => n > level ? "·" : (mask & (1 << (n - 1))) != 0 ? "🔥" : "○"));
         }
         check.Pressed += () => {
             try
@@ -40,5 +53,23 @@ internal static class AscensionPanel
             catch (Exception e) { ModEntry.Reject(e.Message); }
         };
         refresh.Add(Sync);
+    }
+
+    private static int? ReadMaximum(object? source)
+    {
+        if (source == null) return null;
+        var type = source.GetType();
+        return (HarmonyLib.AccessTools.Property(type, "MaxAscension")?.GetValue(source)
+            ?? HarmonyLib.AccessTools.Field(type, "_maxAscension")?.GetValue(source)) as int?;
+    }
+
+    private static Control? FindPanel(Node root)
+    {
+        foreach (var child in root.GetChildren())
+        {
+            if (child is Control panel && panel.GetType().Name == "NAscensionPanel") return panel;
+            if (FindPanel(child) is { } nested) return nested;
+        }
+        return null;
     }
 }

@@ -1,5 +1,10 @@
 # Validation evidence
 
+## 0.7.2 development checks (2026-11-19)
+
+.NET SDK 9.0.203: 196 independent contract assertions/groups passed, including all 11,264 preference/level combinations, the ordinary screen signal, saved mask isolation, A10 suppression, daily bypass, two simulated ordinary network endpoints and existing custom encounter coverage. The existing two independent receiver processes also passed. GodotSharp 4.5.1 compile check completed with zero warnings/errors. All five PowerShell fixture suites passed under Linux PowerShell 7.4.13. Production game DLLs, real UI, Steam transport, unlocks and achievements were not exercised. The owner confirmed Workshop upload of 0.6.0; no 0.7.2 release was uploaded.
+
+
 ## 0.1.0 owner probe report, reviewed 2026-11-18 (Asia/Tokyo)
 
 Source: owner-uploaded selectmod-probe.txt. Raw SHA-256: `7E7A11AC0440B1D04205D10868CF8881FBB12C407B21E67810795BEDF740C43D`. The private raw report contains local paths and is not committed. The agent did not execute the game.

@@ -34,13 +34,14 @@ public static class MultiplayerSelection
         var choices = Sessions.GetOrCreateValue(lobby).Current?.Draft.Choices;
         return choices != null && index < choices.Length ? (choices[index].Boss, choices[index].Ancient) : (null, null);
     }
+    internal static int? PreviewLevel(StartRunLobby lobby) => Sessions.GetOrCreateValue(lobby).Current?.Draft.Ascension;
     internal static int Mask(StartRunLobby lobby) => Sessions.GetOrCreateValue(lobby).Current?.Draft.AscensionMask ?? AscensionSettings.All;
 
     public static string Status(StartRunLobby lobby)
     {
         if (IsClosed(lobby)) return "ロビーは終了しました。";
         var session = Sessions.GetOrCreateValue(lobby);
-        if (!Supported(lobby)) return "マルチはStandardカスタムランから作成してください。";
+        if (!Supported(lobby)) return "個別選択はStandardランで利用できます。";
         if (session.Failure != null) return "設定エラー：" + session.Failure;
         if (session.Current == null) return "ホストの設定を待っています。";
         return (lobby.NetService.Type == NetGameType.Host ? "ホスト編集" : "ホストの設定（変更不可）") + $" revision={session.Current.Draft.Revision} / A{session.Current.Draft.Ascension} / {session.Current.Digest[..8]}";
@@ -144,6 +145,9 @@ public static class MultiplayerSelection
             ModEntry.WriteLog("MP_READY_REQUIRED ascension changed; host must ready again");
             return false;
         }
+        // A normal character screen may start with no custom modifiers of its own.
+        if (!lobby.IsCustom && !models.OfType<SelectLobbySettings>().Any())
+            models = models.Concat(lobby.Modifiers.OfType<SelectLobbySettings>()).ToList();
         var model = models.OfType<SelectLobbySettings>().SingleOrDefault();
         if (model == null || model.Read().Digest != envelope.Digest) throw new InvalidOperationException("SelectMOD: 開始時のホスト設定が一致しません。");
         if (lobby.Players.Count is < 2 or > MultiplayerContract.MaxPlayers) throw new InvalidOperationException("SelectMOD: この試験版のマルチは2～4人用です。");
@@ -152,12 +156,15 @@ public static class MultiplayerSelection
         ModEntry.WriteLog($"MP_START_FROZEN revision={envelope.Draft.Revision} digest={envelope.Digest} players={lobby.Players.Count}");
         return true;
     }
-    public static IReadOnlyList<ModifierModel> Bind(StartRunLobby lobby, IReadOnlyList<ActModel> acts, IReadOnlyList<ModifierModel> models, int players, out int ascension)
+    public static IReadOnlyList<ModifierModel> Bind(StartRunLobby lobby, IReadOnlyList<ActModel> acts, IReadOnlyList<ModifierModel> models, int players, out int ascension, out string digest)
     {
         if (!Supported(lobby)) throw new InvalidOperationException("SelectMOD: マルチはStandardカスタムラン専用です。");
         var session = Sessions.GetOrCreateValue(lobby);
-        var envelope = ReadSnapshot(models);
+        var envelope = !lobby.IsCustom && !models.OfType<SelectLobbySettings>().Any() && session.Starting
+            ? session.Current ?? throw new InvalidOperationException("SelectMOD: 確定した設定がありません。")
+            : ReadSnapshot(models);
         if (!session.Starting || session.Failure != null || session.Current?.Digest != envelope.Digest) throw new InvalidOperationException("SelectMOD: ホストが確定した開始設定がありません。");
+        digest = envelope.Digest;
         ascension = envelope.Draft.Ascension;
         var rules = MultiplayerContract.Bind(envelope, acts);
         var output = models.Where(m => m is not SelectLobbySettings).ToList();

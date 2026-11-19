@@ -281,7 +281,7 @@ namespace Godot
         public Vector2 CustomMinimumSize { get; set; }
         public Vector2 Size { get; set; }
         public float AnchorLeft { get; set; } public float AnchorRight { get; set; }
-        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
+        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public float OffsetLeft { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
         public bool Visible { get; set; } = true;
         public bool IsVisibleInTree() => Visible;
         public event Action? VisibilityChanged;
@@ -289,7 +289,7 @@ namespace Godot
         public void AddThemeFontSizeOverride(string name, int size) { }
         public void AddThemeConstantOverride(string name, int size) { }
     }
-    public class PanelContainer : Control { } public class MarginContainer : Control { }
+    public class Container : Control { } public class PanelContainer : Container { } public class MarginContainer : Control { }
     public class VBoxContainer : Control { } public class HBoxContainer : Control { } public class ScrollContainer : Control { }
     public class Label : Control { public string Text { get; set; } = ""; public TextServer.AutowrapMode AutowrapMode { get; set; } }
     public class OptionButton : Control { public bool Disabled { get; set; } public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }

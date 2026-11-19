@@ -7,7 +7,7 @@ $paths = Get-SelectModPaths -PathsFile $PathsFile
 $local = Join-Path $repo 'local'
 New-Item -ItemType Directory -Path $local -Force | Out-Null
 $text = [Text.StringBuilder]::new()
-$null = $text.AppendLine('SelectMOD 0.7.4 report; export only, not automated gameplay acceptance.')
+$null = $text.AppendLine('SelectMOD 0.8.0 report; export only, not automated gameplay acceptance.')
 foreach ($source in @((Join-Path $local 'setup-report.txt'), (Join-Path $local 'contract-output.txt'), (Join-Path $local 'build-output.txt'), (Join-Path $paths.Config 'selectmod.log'))) {
     $null = $text.AppendLine("`n=== $(Split-Path $source -Leaf) ===")
     if (Test-Path -LiteralPath $source -PathType Leaf) {

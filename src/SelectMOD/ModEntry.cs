@@ -34,9 +34,10 @@ public static class ModEntry
             VerifyReferences();
             // Never touch ModelDb or its caches while the loader is still adding this assembly.
             harmony.PatchAll(typeof(ModEntry).Assembly);
+            AscensionIcon.Install(harmony);
             EncounterSelectionPanel.Install();
             IsActive = true;
-            WriteLog("INITIALIZED version=0.7.4 normal/custom selectable ascension; host-owned multiplayer settings");
+            WriteLog("INITIALIZED version=0.8.0 normal/custom selectable ascension; host-owned multiplayer settings");
         }
         catch (Exception e)
         {

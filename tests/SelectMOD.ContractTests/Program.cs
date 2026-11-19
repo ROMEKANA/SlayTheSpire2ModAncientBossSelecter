@@ -32,6 +32,8 @@ try
     var brokenNeow = new MegaCrit.Sts2.Core.Models.Events.Neow { State = new RunState { Modifiers = new[] { new SelectEncounterSettings() } } };
     Check(brokenNeow.OptionsForTest().Count == 0, "unpatched Neow failure witness no longer reproduces");
     harmony.PatchAll(typeof(ModEntry).Assembly);
+    AscensionIcon.Install(harmony);
+    Check(new SelectAscensionSettings().Icon is ImageTexture && new SelectEncounterSettings().Icon == null, "blue flame override scope");
     typeof(ModEntry).GetProperty(nameof(ModEntry.IsActive))!.SetValue(null, true);
     var boss1 = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "boss1") });
     var boss2 = ModelDb.Register(new EncounterModel { Id = new("ENCOUNTER", "boss2") });
@@ -163,13 +165,17 @@ try
     screen.Lobby = new();
     screen.Lobby.SyncAscensionChange(5);
     screen.AfterInitialized();
-    var ascCheck = Descendants<CheckBox>(screen).Single();
-    Check(!ascCheck.Disabled && ascCheck.ButtonPressed, "default A5 checkbox");
-    ascCheck.SetPressedNoSignal(false);
-    ascCheck.Press();
-    Check(AscensionPreference.Read() == (AscensionSettings.All ^ 16), "checkbox did not persist A5 off");
+    var flames = Descendants<Button>(screen).Where(b => b.Name.StartsWith("SelectMODFlame")).ToArray();
+    Check(flames.Length == 10 && flames.Take(5).All(b => b.Visible && !b.Disabled && b.Text == "🔥") &&
+        flames.Skip(5).All(b => !b.Visible && b.Disabled), "ten slots respect selected level");
+    flames[0].Press();
+    Check(flames[0].Text == "" && screen.Lobby.Ascension == 5, "lower effect requires arrow navigation");
+    flames[0].Press();
+    flames[5].Press();
+    flames[4].Press();
+    Check(AscensionPreference.Read() == (AscensionSettings.All ^ 16), "direct toggles changed other bits");
     screen.Lobby.SyncAscensionChange(4);
-    Check(ascCheck.ButtonPressed && ascCheck.Text.Contains("A4"), "vanilla arrow did not refresh checkbox");
+    Check(!flames[4].Visible && flames[3].Visible, "arrow did not refresh available slots");
     var selectiveGame = new NGame();
     var selective = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 5);
     var frozen = selective.Modifiers.OfType<SelectAscensionSettings>().Single();

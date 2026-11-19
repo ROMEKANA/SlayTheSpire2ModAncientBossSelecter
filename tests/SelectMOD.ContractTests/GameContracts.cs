@@ -26,6 +26,7 @@ namespace MegaCrit.Sts2.Core.Models
         public virtual MegaCrit.Sts2.Core.Localization.LocString Title => new("fixture", Id.Entry);
 
         public virtual MegaCrit.Sts2.Core.Localization.LocString Description => new("fixture", "description");
+        public Godot.Texture2D Icon { [MethodImpl(MethodImplOptions.NoInlining)] get => null!; }
         public virtual Func<Task>? GenerateNeowOption(EventModel model) => null;
         public ModifierModel ToMutable() => (ModifierModel)MemberwiseClone();
         protected virtual void AfterRunCreated(RunState state) { }
@@ -258,6 +259,10 @@ namespace MegaCrit.Sts2.Core.Odds { public static class CardRarityOdds { public 
 #if !ACTUAL_GODOT
 namespace Godot
 {
+    public enum Error { Ok }
+    public class Texture2D { }
+    public class Image : IDisposable { public Error LoadSvgFromString(string svg) => Error.Ok; public void Dispose() { } }
+    public class ImageTexture : Texture2D { public static ImageTexture CreateFromImage(Image image) => new(); }
     public static class GD { public static void PushError(string message) { } public static void PushWarning(string message) { } }
     public static class Engine { public static SceneTree Tree { get; } = new(); public static object GetMainLoop() => Tree; }
     public class Node
@@ -282,7 +287,7 @@ namespace Godot
         public Vector2 CustomMinimumSize { get; set; }
         public Vector2 Size { get; set; }
         public float AnchorLeft { get; set; } public float AnchorRight { get; set; }
-        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public bool ClipContents { get; set; } public float OffsetLeft { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
+        public float AnchorTop { get; set; } public float AnchorBottom { get; set; } public string TooltipText { get; set; } = ""; public bool ClipContents { get; set; } public float OffsetLeft { get; set; } public float OffsetBottom { get; set; } public int ZIndex { get; set; }
         public bool Visible { get; set; } = true;
         public bool IsVisibleInTree() => Visible;
         public event Action? VisibilityChanged;
@@ -295,7 +300,7 @@ namespace Godot
     public class Label : Control { public string Text { get; set; } = ""; public TextServer.AutowrapMode AutowrapMode { get; set; } }
     public class OptionButton : Control { public bool Disabled { get; set; } public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
     public class CheckBox : Button { public bool ButtonPressed { get; set; } public void SetPressedNoSignal(bool value) => ButtonPressed = value; }
-    public class Button : Control { public bool Disabled { get; set; } public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
+    public class Button : Control { public bool ClipText { get; set; } public bool Disabled { get; set; } public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
     public class AcceptDialog : Control
     {
         public string Title { get; set; } = ""; public string DialogText { get; set; } = ""; public bool DialogHideOnOk { get; set; }

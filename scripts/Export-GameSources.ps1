@@ -86,7 +86,7 @@ try {
         'INetMessage', 'IPacketSerializable', 'NetMessageBus', 'ModelIdSerializationCache',
         'PacketWriter', 'PacketReader', 'PacketWriterExtensions', 'PacketReaderExtensions',
         'ModManager', 'ModInitializerAttribute', 'ReflectionHelper',
-        'NCustomRunScreen', 'NCustomRunModifiersList', 'NCharacterSelectScreen', 'NGame', 'MapCmd',
+        'NAscensionPanel', 'NTopBar', 'NTopBarPortrait', 'NTopBarPortraitTip', 'NRunModifier', 'NCustomRunScreen', 'NCustomRunModifiersList', 'NCharacterSelectScreen', 'NGame', 'MapCmd',
         'StartRunLobbyPlayer', 'LoadRunLobbyPlayer', 'RunLobby', 'PeerVersionInfo',
         'Rng', 'RunRngSet', 'AncientEventModel', 'Neow', 'EventModel', 'EncounterModel'
     )

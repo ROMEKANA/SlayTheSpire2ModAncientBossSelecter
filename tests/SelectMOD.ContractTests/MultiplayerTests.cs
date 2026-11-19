@@ -69,6 +69,16 @@ internal static class MultiplayerTests
             var controls = Walk<OptionButton>(clientScreen).ToArray();
             Check(controls.Length == options.Length * 2 && controls.All(c => c.Disabled), "guest UI not read-only");
             Check(Walk<Button>(clientScreen).Single(b => b.Name == "SelectMODRandomReset").Disabled, "guest reset enabled");
+            var hostScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CustomRun.NCustomRunScreen { Lobby = host };
+            Engine.Tree.Root.AddChild(hostScreen); hostScreen.AfterInitialized();
+            var hostFlame = Walk<Button>(hostScreen).Single(b => b.Name == "SelectMODFlame4");
+            var guestFlame = Walk<Button>(clientScreen).Single(b => b.Name == "SelectMODFlame4");
+            hostFlame.Press();
+            Check(guestFlame.Visible && guestFlame.Disabled && guestFlame.Text == "" && host.Ascension == 10, "guest missing host's lower-level toggle");
+            guestFlame.Press();
+            Check((AscensionPreference.Read() & 8) == 0, "guest changed preference through read-only flame");
+            hostFlame.Press();
+            Check(guestFlame.Text == "🔥", "guest flame did not relight");
             host.Ready = true; host.SyncAscensionChange(10);
             Check(!host.Ready && ((SelectLobbySettings)host.Modifiers.Single()).Read().Draft.Ascension == 10, "ascension change not captured/unready");
             var old = Wire(host.Modifiers);

@@ -107,9 +107,9 @@ try {
         if ($hadConfig) { [IO.File]::Replace($tempConfig, $config, $backupConfig) }
         else { [IO.File]::Move($tempConfig, $config) }
         $configWritten = $true
-        $trace.Add('INSTALLED version=0.7.4 normal/custom selectable ascension; host-owned multiplayer settings')
-        Write-Host 'Installed SelectMOD 0.7.4. Solo: use the character-screen settings. Multiplayer beta: host a Standard run (custom for fixed encounters), 2-4 players, same SelectMOD on every peer. Live rejoin is unsupported.'
-        Write-Host "Solo selection panel: $($settings.SelectionDialog). Multiplayer always displays synchronized host settings. Use the ascension checkbox at each level; the run keeps its starting selection."
+        $trace.Add('INSTALLED version=0.8.0 normal/custom selectable ascension; host-owned multiplayer settings')
+        Write-Host 'Installed SelectMOD 0.8.0. Solo: use the character-screen settings. Multiplayer beta: host a Standard run (custom for fixed encounters), 2-4 players, same SelectMOD on every peer. Live rejoin is unsupported.'
+        Write-Host "Solo selection panel: $($settings.SelectionDialog). Multiplayer always displays synchronized host settings. Click any available flame slot; the run keeps its starting selection."
     } catch {
         if ($installStarted -and (Test-Path -LiteralPath $destination)) { Move-Item -LiteralPath $destination -Destination (Join-Path $configDir ('failed-install-' + [guid]::NewGuid().ToString('N'))) }
         if ($previous) { Move-Item -LiteralPath $previous -Destination $destination }

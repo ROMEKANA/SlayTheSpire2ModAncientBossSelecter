@@ -2,7 +2,11 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
-## Current handoff — 0.7.4
+## Current handoff — 0.8.0
+
+Owner observed the solo A4-off / A5-on combination: potion capacity retained and Ascender’s Bane present. No claim for enemy attacks, odds, double boss or multiplayer hardware yet. The new fixed ten-slot UI lets the host or solo player edit lower levels without changing the scalar. Unavailable slots reserve space. The optional ModifierModel.Icon getter patch supplies the ascension model's own cached blue flame. The native top-left cumulative tooltip is still unfiltered. The Japanese README covers updating the existing unlisted standalone Workshop item and a two-peer smoke test.
+
+## Prior handoff — 0.7.4
 
 0.7.3 checks the saved effective mask against the native scalar and the host encounter envelope before restoration. 0.7.4 ties asynchronous load cleanup to the initiating attempt and offers a manual BaseLib comparison build. Use Setup with no switch for standalone, or with -BaseLib for the alternative. Both keep the same saved IDs and run rules. The BaseLib path uses the real 3.4.8 AddUnique API to attach the ascension controls. The optional package provides compile references only. Owner must have BaseLib and its dependencies enabled to load that variant. See README for the two commands. Steam upload status and weekend multiplayer acceptance are unchanged.
 

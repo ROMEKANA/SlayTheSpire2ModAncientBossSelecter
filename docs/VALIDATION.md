@@ -1,5 +1,9 @@
 # Validation evidence
 
+## 0.8.0 display and distribution
+
+The owner verified solo A4 disabled and A5 enabled under the previous UI. This is gameplay evidence for that one combination. For 0.8.0, 213 independent contract checks/groups passed, including ten reserved slots, editing below the current level, rejecting above-level clicks, host-to-guest flame updates and guest input rejection. Both public Godot API builds completed without warnings/errors, and the five PowerShell fixture suites passed. Headless Godot 4.6.3 rasterized the embedded blue flame to a nonempty 64×64 image. The top bar getter, screen fit and real multiplayer still need game acceptance. The native portrait tooltip displays cumulative levels until a verified tooltip builder is available.
+
 ## 0.7.4 follow-up
 
 202 contract checks/groups passed, including corrupted saved masks, a delayed load failure after the next run starts, and two receiver processes. All 1,023 filtered A10 masks passed both effect query routes and A7 cache cleanup across consecutive fixture runs. The standalone and BaseLib compile checks use public GodotSharp 4.5.1 and independent game contracts; both compiled with zero warnings/errors. The optional build references the real BaseLib 3.4.8 package. Installation fixtures exercise a standalone → BaseLib → standalone round trip. Runtime testing on the reviewed Steam installation remains pending.

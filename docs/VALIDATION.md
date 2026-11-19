@@ -1,5 +1,9 @@
 # Validation evidence
 
+## 0.7.4 follow-up
+
+202 contract checks/groups passed, including corrupted saved masks, a delayed load failure after the next run starts, and two receiver processes. All 1,023 filtered A10 masks passed both effect query routes and A7 cache cleanup across consecutive fixture runs. The standalone and BaseLib compile checks use public GodotSharp 4.5.1 and independent game contracts; both compiled with zero warnings/errors. The optional build references the real BaseLib 3.4.8 package. Installation fixtures exercise a standalone → BaseLib → standalone round trip. Runtime testing on the reviewed Steam installation remains pending.
+
 ## 0.7.2 development checks (2026-11-19)
 
 .NET SDK 9.0.203: 196 independent contract assertions/groups passed, including all 11,264 preference/level combinations, the ordinary screen signal, saved mask isolation, A10 suppression, daily bypass, two simulated ordinary network endpoints and existing custom encounter coverage. The existing two independent receiver processes also passed. GodotSharp 4.5.1 compile check completed with zero warnings/errors. All five PowerShell fixture suites passed under Linux PowerShell 7.4.13. Production game DLLs, real UI, Steam transport, unlocks and achievements were not exercised. The owner confirmed Workshop upload of 0.6.0; no 0.7.2 release was uploaded.

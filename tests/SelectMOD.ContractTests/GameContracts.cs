@@ -118,6 +118,7 @@ namespace MegaCrit.Sts2.Core.Runs
         [MethodImpl(MethodImplOptions.NoInlining)] private void InitializeShared() => AscensionManager = new() { Level = State!.AscensionLevel };
         [MethodImpl(MethodImplOptions.NoInlining)] public bool HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel level) => IsInProgress && AscensionManager.HasLevel(level);
         public int Starts; public int GameRngDraws;
+        public Task? SavedSoloResult { get; set; }
         public Task? SavedMultiplayerResult { get; set; }
         public bool IsInProgress => State != null;
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewSingleplayer(RunState state, bool save = true, DateTimeOffset? dailyTime = null)
@@ -132,7 +133,7 @@ namespace MegaCrit.Sts2.Core.Runs
             GenerateRooms();
         }
         [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedSingleplayer(RunState state, SerializableRun save)
-        { State = state; InitializeShared(); Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return Task.CompletedTask; }
+        { State = state; InitializeShared(); Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return SavedSoloResult ?? Task.CompletedTask; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void GenerateRooms()
         {
             foreach (var act in State!.Acts)

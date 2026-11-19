@@ -36,6 +36,7 @@ try {
         if ($args[0] -eq 'build') {
             if ($global:selectModBuildFails) { $global:LASTEXITCODE = 17; return }
             $out = Join-Path $global:selectModSetupFixture 'src/SelectMOD/bin/Release/net9.0'
+            if ($args -contains '-p:UseSelectModBaseLib=true') { $out = Join-Path $global:selectModSetupFixture 'src/SelectMOD/bin/BaseLib/Release/net9.0' }
             New-Item -ItemType Directory -Path $out -Force | Out-Null
             [IO.File]::WriteAllText((Join-Path $out 'SelectMOD.dll'), 'fixture MOD payload')
         }
@@ -59,6 +60,12 @@ try {
     & $setup -PathsFile $paths -SelectionDialog $true
     Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).SelectionDialog) 'Dialog enable failed'
     Assert-Setup ((Get-Content $config -Raw | ConvertFrom-Json).AscensionMask -eq 10) 'Historical settings were destroyed'
+    & $setup -PathsFile $paths -BaseLib
+    $installedManifest = Get-Content (Join-Path $install 'SelectMOD.json') -Raw | ConvertFrom-Json
+    Assert-Setup ($installedManifest.dependencies[0].id -eq 'BaseLib') 'BaseLib variant lost its loader dependency'
+    & $setup -PathsFile $paths
+    $installedManifest = Get-Content (Join-Path $install 'SelectMOD.json') -Raw | ConvertFrom-Json
+    Assert-Setup ($installedManifest.dependencies.Count -eq 0) 'Switching back retained BaseLib dependency'
     $beforeConfig = [IO.File]::ReadAllText($config)
     $beforeDll = (Get-FileHash (Join-Path $install 'SelectMOD.dll')).Hash
     $global:selectModBuildFails = $true

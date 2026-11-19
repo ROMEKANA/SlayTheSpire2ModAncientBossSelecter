@@ -2,7 +2,11 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
-## Current handoff — 0.7.2
+## Current handoff — 0.7.4
+
+0.7.3 checks the saved effective mask against the native scalar and the host encounter envelope before restoration. 0.7.4 ties asynchronous load cleanup to the initiating attempt and offers a manual BaseLib comparison build. Use Setup with no switch for standalone, or with -BaseLib for the alternative. Both keep the same saved IDs and run rules. The BaseLib path uses the real 3.4.8 AddUnique API to attach the ascension controls. The optional package provides compile references only. Owner must have BaseLib and its dependencies enabled to load that variant. See README for the two commands. Steam upload status and weekend multiplayer acceptance are unchanged.
+
+## Previous handoff — 0.7.2
 
 Owner confirmed the 0.6.0 Workshop upload succeeded. Do not repeat publication. Multiplayer hardware testing is scheduled for the weekend. The development checkout now implements normal/custom ascension selection. See [the implementation history and acceptance cases](ASCENSION_AUDIT.md#normal-and-custom-runs-in-072). Use the existing Setup entry point on the reviewed installation for the first game-referenced build and solo smoke test. No new Workshop upload was requested.
 

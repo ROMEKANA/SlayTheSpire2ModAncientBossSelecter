@@ -57,8 +57,6 @@ public static class AscensionRuntime
         ModEntry.WriteLog($"ASCENSION_BOUND mask={binding.Settings.Mask} observedMask={observed} enabled={binding.Settings.Describe()}");
     }
 
-    public static object? BindingFor(RunManager manager) => Runs.TryGetValue(manager, out var binding) ? binding : null;
-
     public static bool TryGet(RunManager manager, out AscensionSettings settings)
     {
         if (manager.IsInProgress && Runs.TryGetValue(manager, out var binding)) { settings = binding.Settings; return true; }
@@ -154,11 +152,10 @@ internal static class AscensionCleanupPatch
 internal static class AscensionSetupPatch
 {
     private static IEnumerable<System.Reflection.MethodBase> TargetMethods() =>
-        new[] { nameof(RunManager.SetUpNewSingleplayer), nameof(RunManager.SetUpNewMultiplayer),
-                nameof(RunManager.SetUpSavedSingleplayer), nameof(RunManager.SetUpSavedMultiplayer) }
+        new[] { nameof(RunManager.SetUpNewSingleplayer), nameof(RunManager.SetUpNewMultiplayer) }
         .Select(name => AccessTools.Method(typeof(RunManager), name));
 
-    private static void Prefix(RunManager __instance, RunState __0, out object? __state)
+    internal static void Prefix(RunManager __instance, RunState __0, out object? __state)
     {
         __state = null;
         if (!__0.Modifiers.OfType<SelectAscensionSettings>().Any()) return;
@@ -166,7 +163,7 @@ internal static class AscensionSetupPatch
         __state = AscensionRuntime.Prepare(__instance, __0);
     }
 
-    private static Exception? Finalizer(RunManager __instance, object? __state, Exception? __exception)
+    internal static Exception? Finalizer(RunManager __instance, object? __state, Exception? __exception)
     {
         if (__state != null && __exception != null) AscensionRuntime.Release(__instance, __state);
         return __exception;
@@ -180,10 +177,15 @@ internal static class AscensionLoadFailurePatch
         new[] { nameof(RunManager.SetUpSavedSingleplayer), nameof(RunManager.SetUpSavedMultiplayer) }
         .Select(name => AccessTools.Method(typeof(RunManager), name));
 
-    private static void Postfix(RunManager __instance, ref Task __result)
+    private static void Prefix(RunManager __instance, RunState __0, out object? __state) =>
+        AscensionSetupPatch.Prefix(__instance, __0, out __state);
+
+    private static Exception? Finalizer(RunManager __instance, object? __state, Exception? __exception) =>
+        AscensionSetupPatch.Finalizer(__instance, __state, __exception);
+
+    private static void Postfix(RunManager __instance, object? __state, ref Task __result)
     {
-        if (AscensionRuntime.BindingFor(__instance) is object token)
-            __result = Observe(__result, __instance, token);
+        if (__state != null) __result = Observe(__result, __instance, __state);
     }
 
     private static async Task Observe(Task load, RunManager manager, object token)

@@ -13,14 +13,19 @@ internal static class AscensionPanel
         box.AddChild(flames);
         box.AddChild(check);
         var native = FindPanel(screen);
-        if (native != null && native is not Container && !native.ClipContents)
+        var besideNative = native != null && native is not Container && !native.ClipContents;
+        if (besideNative)
         {
             // Use native local coordinates so layout follows the game's UI scale.
             box.AnchorLeft = box.AnchorRight = 1;
             box.OffsetLeft = 8;
-            native.AddChild(box);
         }
-        else list.AddChild(box);
+        var parent = besideNative ? native! : (Control)list;
+#if SELECTMOD_BASELIB
+        BaseLib.Extensions.NodeExtensions.AddUnique(parent, box, "SelectMODAscensionControls");
+#else
+        parent.AddChild(box);
+#endif
 
         void Sync()
         {

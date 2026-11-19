@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup Condition="'$(UseSelectModBaseLib)' == 'true'">
+    <DefineConstants>$(DefineConstants);SELECTMOD_BASELIB</DefineConstants>
+    <OutputPath>bin/BaseLib/$(Configuration)/</OutputPath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UseSelectModBaseLib)' == 'true'">
+    <PackageReference Include="Alchyr.Sts2.BaseLib" Version="3.4.8" IncludeAssets="compile" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

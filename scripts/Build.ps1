@@ -2,6 +2,7 @@
 param(
     [string]$PathsFile,
     [string]$ProjectPath,
+    [switch]$BaseLib,
     [string]$GameDataDir
 )
 $ErrorActionPreference = 'Stop'
@@ -28,7 +29,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'SDK selection failed. Check global.json and installed SDKs.' }
         $local = Join-Path $repo 'local'
         New-Item -ItemType Directory -Path $local -Force | Out-Null
-        & dotnet build $ProjectPath -c Release "-p:GameDataDir=$GameDataDir" "-p:GameAssemblyPath=$(Join-Path $GameDataDir 'sts2.dll')" "-p:HarmonyAssemblyPath=$(Join-Path $GameDataDir '0Harmony.dll')" "-p:GodotAssemblyPath=$(Join-Path $GameDataDir 'GodotSharp.dll')" | Tee-Object -FilePath (Join-Path $local 'build-output.txt')
+        & dotnet build $ProjectPath "-p:UseSelectModBaseLib=$($BaseLib.IsPresent.ToString().ToLowerInvariant())" -c Release "-p:GameDataDir=$GameDataDir" "-p:GameAssemblyPath=$(Join-Path $GameDataDir 'sts2.dll')" "-p:HarmonyAssemblyPath=$(Join-Path $GameDataDir '0Harmony.dll')" "-p:GodotAssemblyPath=$(Join-Path $GameDataDir 'GodotSharp.dll')" | Tee-Object -FilePath (Join-Path $local 'build-output.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Game-referenced build failed. No installation was performed.' }
         Write-Host 'Build completed. No installation or distribution staging was performed; runtime acceptance is separate.'
     }

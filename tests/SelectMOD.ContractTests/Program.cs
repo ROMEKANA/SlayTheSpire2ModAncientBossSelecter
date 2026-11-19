@@ -186,7 +186,14 @@ try
     await selectiveGame.Manager.SetUpSavedSingleplayer(restoredAscension, stored);
     Check(selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "save ignored its own mask");
     selectiveGame.Manager.CleanUp();
+    var delayed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    selectiveGame.Manager.SavedSoloResult = delayed.Task;
+    var previousLoad = selectiveGame.Manager.SetUpSavedSingleplayer(restoredAscension, stored);
+    selectiveGame.Manager.CleanUp();
     var allOff = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, true, 10);
+    delayed.SetException(new IOException("simulated old load failure"));
+    try { await previousLoad; throw new Exception("lost load error"); } catch (IOException) { }
+    Check(!selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "late failed load cleared next run binding");
     Check(allOff.Modifiers.OfType<SelectAscensionSettings>().Single().Snapshot.Mask == 0 && !allOff.Acts.Last().GetRoomsDebug().HasSecondBoss, "A10 off/custom all-off");
     selectiveGame.Manager.CleanUp();
     for (int mask = 0; mask <= AscensionSettings.All; mask++)
@@ -198,6 +205,27 @@ try
             if (expected == (1 << level) - 1 ? filtered != null : filtered?.Snapshot.Mask != expected)
                 throw new Exception($"Wrong projection mask={mask} level={level}");
         }
+    // Drive both real Harmony query hooks for every mask, including gaps.
+    var matrixGame = new NGame();
+    for (int mask = 0; mask < AscensionSettings.All; mask++)
+    {
+        var matrixState = new RunState { AscensionLevel = 10, Acts = acts.Select(a => a.ToMutable()).ToList(),
+            Modifiers = AscensionPreference.Apply([], 10, mask).ToList() };
+        matrixGame.Manager.SetUpNewSingleplayer(matrixState);
+        for (int n = 1; n <= 10; n++)
+        {
+            var effect = (MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel)n;
+            var enabled = (mask & (1 << (n - 1))) != 0;
+            if (matrixGame.Manager.HasAscension(effect) != enabled || matrixGame.Manager.AscensionManager.HasLevel(effect) != enabled)
+                throw new Exception($"Runtime effect mismatch mask={mask} A{n}");
+        }
+        if (MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds != ((mask & 64) != 0 ? 0.615f : 0.6f))
+            throw new Exception($"A7 cache mismatch mask={mask}");
+        matrixGame.Manager.CleanUp();
+        if (MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds != 0.6f)
+            throw new Exception($"A7 cache leaked after mask={mask}");
+    }
+    checks++;
     checks++;
     EncounterDraft.Set(0, true, EncounterCatalog.Key(variantBoss));
     var dailyGame = new NGame();

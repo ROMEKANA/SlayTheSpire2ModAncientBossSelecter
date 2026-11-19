@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$PathsFile,
+    [switch]$BaseLib,
     [ValidateRange(0, 1000000)][int]$ProbeValue = 42,
     [bool]$SelectionDialog = $true
 )
@@ -49,7 +50,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Independent contract tests failed.' }
     }
     $trace.Add('CONTRACT_TESTS_PASSED (not game acceptance)')
-    & (Join-Path $PSScriptRoot 'Build.ps1') -GameDataDir $data
+    & (Join-Path $PSScriptRoot 'Build.ps1') -GameDataDir $data -BaseLib:$BaseLib
     $trace.Add('ACTUAL_REFERENCE_BUILD_PASSED (not game acceptance)')
     # Recheck updates before touching config/installation.
     foreach ($entry in $policy.Assemblies.PSObject.Properties) {
@@ -66,10 +67,19 @@ try {
     # Retain old AscensionMask for history, but encounter-selector releases never read or apply it.
     $stage = Join-Path $configDir ('staged-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
-    $sourceDll = Join-Path $repo 'src/SelectMOD/bin/Release/net9.0/SelectMOD.dll'
+    $output = if ($BaseLib) { 'bin/BaseLib/Release' } else { 'bin/Release' }
+    $sourceDll = Join-Path $repo "src/SelectMOD/$output/net9.0/SelectMOD.dll"
     if (!(Test-Path -LiteralPath $sourceDll -PathType Leaf)) { throw 'Production DLL missing after build.' }
     Copy-Item -LiteralPath $sourceDll -Destination (Join-Path $stage 'SelectMOD.dll')
     Copy-Item -LiteralPath (Join-Path $repo 'src/SelectMOD/SelectMOD.json') -Destination $stage
+    if ($BaseLib) {
+        $manifestFile = Join-Path $stage 'SelectMOD.json'
+        $manifest = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
+        $manifest.dependencies = @(@{ id = 'BaseLib'; min_version = '3.4.8' })
+        $manifest.name = 'SelectMOD (BaseLib)'
+        [IO.File]::WriteAllText($manifestFile, ($manifest | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+        $trace.Add('VARIANT BaseLib; requires installed BaseLib 3.4.8 or compatible')
+    }
     [IO.File]::WriteAllText((Join-Path $stage 'SelectMOD.paths.txt'), $configDir, [Text.UTF8Encoding]::new($false))
     $tempConfig = Join-Path $configDir ('config-' + [guid]::NewGuid().ToString('N') + '.tmp')
     [IO.File]::WriteAllText($tempConfig, ($settings | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
@@ -97,8 +107,8 @@ try {
         if ($hadConfig) { [IO.File]::Replace($tempConfig, $config, $backupConfig) }
         else { [IO.File]::Move($tempConfig, $config) }
         $configWritten = $true
-        $trace.Add('INSTALLED version=0.7.3 normal/custom selectable ascension; host-owned multiplayer settings')
-        Write-Host 'Installed SelectMOD 0.7.3. Solo: use the character-screen settings. Multiplayer beta: host a Standard run (custom for fixed encounters), 2-4 players, same SelectMOD on every peer. Live rejoin is unsupported.'
+        $trace.Add('INSTALLED version=0.7.4 normal/custom selectable ascension; host-owned multiplayer settings')
+        Write-Host 'Installed SelectMOD 0.7.4. Solo: use the character-screen settings. Multiplayer beta: host a Standard run (custom for fixed encounters), 2-4 players, same SelectMOD on every peer. Live rejoin is unsupported.'
         Write-Host "Solo selection panel: $($settings.SelectionDialog). Multiplayer always displays synchronized host settings. Use the ascension checkbox at each level; the run keeps its starting selection."
     } catch {
         if ($installStarted -and (Test-Path -LiteralPath $destination)) { Move-Item -LiteralPath $destination -Destination (Join-Path $configDir ('failed-install-' + [guid]::NewGuid().ToString('N'))) }

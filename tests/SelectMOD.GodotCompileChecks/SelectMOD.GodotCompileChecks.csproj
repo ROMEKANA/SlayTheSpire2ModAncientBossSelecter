@@ -10,4 +10,5 @@
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
     <EmbeddedResource Include="../../compatibility/reviewed-builds.json" LogicalName="SelectMOD.reviewed-builds.json" />
   </ItemGroup>
+  <Import Project="../../variants/BaseLib.props" />
 </Project>

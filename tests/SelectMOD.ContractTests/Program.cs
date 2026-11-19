@@ -174,7 +174,6 @@ try
     Reject(() => ProbeRules.ValidateSelection([new SelectAscensionSettings()], true, GameMode.Standard, 1), "retired ascension accepted");
     var retired = new SerializableRun { IsCustomGame = true, Modifiers = [new() { Id = ModelDb.GetId<SelectAscensionSettings>(), Value = new SelectAscensionSettings { SelectAscensionSchema = 1, SelectAscensionMask = 10 } }] };
     Reject(() => RunState.FromSerializable(retired), "retired save silently converted");
-    Check(Harmony.GetAllPatchedMethods().All(m => m.DeclaringType != typeof(MegaCrit.Sts2.Core.Entities.Ascension.AscensionManager)), "ascension hook still active");
     Check(new MegaCrit.Sts2.Core.Entities.Ascension.AscensionManager().HasLevel(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "standard ascension changed");
     Check(MegaCrit.Sts2.Core.Odds.CardRarityOdds.regularCommonOdds == 0.6f, "A7 cache altered");
     var host = new MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby { Ready = true };

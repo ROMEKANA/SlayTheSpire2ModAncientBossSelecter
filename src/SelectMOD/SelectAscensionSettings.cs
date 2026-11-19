@@ -27,7 +27,7 @@ public sealed class SelectAscensionSettings : ModifierModel
     public AscensionSettings Snapshot => new(_schema, _mask);
     public override LocString Title => ProbeText.Create("ascension_title", "SelectMOD 個別アセンション");
     public override LocString Description => ProbeText.Create("ascension_description",
-        $"ON: {Snapshot.Describe()}。表示上の累積値はA0で、選んだ効果だけを使います（ソロ専用）。");
+        $"ON: {Snapshot.Describe()}。選んだレベルまでの有効な効果を使います。");
     public AscensionSettings Freeze()
     {
         Snapshot.Validate();

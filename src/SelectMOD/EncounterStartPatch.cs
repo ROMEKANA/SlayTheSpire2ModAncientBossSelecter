@@ -12,7 +12,7 @@ namespace SelectMOD;
 internal static class EncounterStartPatch
 {
     private static void Prefix(Player __0, bool __1, IReadOnlyList<ActModel> __2, ref IReadOnlyList<ModifierModel> __3,
-        GameMode __5, ref bool __6, DateTimeOffset? __8)
+        GameMode __5, ref bool __6, int __7, DateTimeOffset? __8)
     {
         if (!ModEntry.IsActive || !__1 || __5 != GameMode.Standard || __8 != null) return;
         try
@@ -23,6 +23,7 @@ internal static class EncounterStartPatch
             if (ModEntry.ReadSelectionDialog())
             {
                 if (EncounterSelectionPanel.Failure != null) throw new InvalidOperationException("SelectMOD設定画面にエラーがあります: " + EncounterSelectionPanel.Failure);
+                __3 = AscensionPreference.Apply(__3, __7, AscensionPreference.Read());
                 var catalog = EncounterCatalog.Build(__2, __0.UnlockState);
                 // Bind index-based UI choices to the ACTUAL randomly selected Act IDs.
                 var rules = EncounterDraft.Snapshot(catalog);

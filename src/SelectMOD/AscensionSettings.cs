@@ -3,7 +3,7 @@ namespace SelectMOD;
 // This value object has no dependency on custom-run screens or multiplayer UI.
 public readonly record struct AscensionSettings(int Schema, int Mask)
 {
-    public const int CurrentSchema = 1;
+    public const int CurrentSchema = 2;
     public const int All = (1 << 10) - 1;
     public void Validate()
     {

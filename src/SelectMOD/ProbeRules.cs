@@ -6,7 +6,13 @@ public static class ProbeRules
     public static void ValidateSelection(IEnumerable<ModifierModel> modifiers, bool isCustom, GameMode mode, int players)
     {
         var models = modifiers.ToArray();
-        if (models.OfType<SelectAscensionSettings>().Any()) throw new InvalidOperationException("SelectMOD: 0.2の個別アセンションは停止中です。この保存ランは変更せず、新規ランでボス選択を試してください。");
+        var ascensions = models.OfType<SelectAscensionSettings>().ToArray();
+        if (ascensions.Length > 0)
+        {
+            if (!ModEntry.IsActive || ascensions.Length != 1 || mode != GameMode.Standard || players is < 1 or > 4)
+                throw new InvalidOperationException("SelectMOD: 個別アセンションのモード／人数／件数が不正です。");
+            ascensions[0].Snapshot.Validate();
+        }
         if (models.OfType<SelectLobbySettings>().Any()) throw new InvalidOperationException("SelectMOD: 未確定のロビー設定がランに混入しています。");
         var probes = models.OfType<SelectSettingsProbe>().ToArray();
         var encounters = models.OfType<SelectEncounterSettings>().ToArray();
@@ -33,6 +39,8 @@ public static class ProbeRules
     public static void ValidateRun(RunState state)
     {
         ValidateSelection(state.Modifiers, state.IsCustomGame, state.GameMode, state.Players.Count);
+        foreach (var selection in state.Modifiers.OfType<SelectAscensionSettings>())
+            if ((selection.Snapshot.Mask & ~AscensionPreference.Stack(state.AscensionLevel)) != 0) throw new InvalidDataException("SelectMOD: 選択レベルを超えています。");
         foreach (var model in state.Modifiers.OfType<SelectEncounterSettings>().Where(m => m.SelectMultiplayerOrigin.Length != 0))
             if (MultiplayerContract.Read(model.SelectMultiplayerOrigin).Draft.Ascension != state.AscensionLevel) throw new InvalidOperationException("SelectMOD: ホストとアセンションが一致しません。");
     }

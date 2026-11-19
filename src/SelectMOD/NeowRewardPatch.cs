@@ -43,5 +43,5 @@ internal static class NeowRewardPatch
         ModEntry.WriteLog($"NEOW_REWARD_VIEW excluded SelectMOD storage; remaining={visible.Length}");
         return visible;
     }
-    private static bool IsStorageOnly(ModifierModel model) => model is SelectEncounterSettings or SelectSettingsProbe;
+    private static bool IsStorageOnly(ModifierModel model) => model is SelectEncounterSettings or SelectSettingsProbe or SelectAscensionSettings;
 }

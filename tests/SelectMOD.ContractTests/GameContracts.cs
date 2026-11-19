@@ -114,6 +114,9 @@ namespace MegaCrit.Sts2.Core.Runs
     public class RunManager
     {
         private RunState? State;
+        public MegaCrit.Sts2.Core.Entities.Ascension.AscensionManager AscensionManager { get; private set; } = new();
+        [MethodImpl(MethodImplOptions.NoInlining)] private void InitializeShared() => AscensionManager = new() { Level = State!.AscensionLevel };
+        [MethodImpl(MethodImplOptions.NoInlining)] public bool HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel level) => IsInProgress && AscensionManager.HasLevel(level);
         public int Starts; public int GameRngDraws;
         public Task? SavedMultiplayerResult { get; set; }
         public bool IsInProgress => State != null;
@@ -124,12 +127,12 @@ namespace MegaCrit.Sts2.Core.Runs
         }
         private void SetUpNewSingleplayerCore(RunState state)
         {
-            State = state; Starts++;
+            State = state; InitializeShared(); Starts++;
             foreach (var model in state.Modifiers) model.OnRunCreated(state);
             GenerateRooms();
         }
         [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedSingleplayer(RunState state, SerializableRun save)
-        { State = state; Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return Task.CompletedTask; }
+        { State = state; InitializeShared(); Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return Task.CompletedTask; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void GenerateRooms()
         {
             foreach (var act in State!.Acts)
@@ -138,12 +141,12 @@ namespace MegaCrit.Sts2.Core.Runs
                 act.SetBossEncounter(act.Bosses[0]);
                 act.GetRoomsDebug().Ancient = act.Ancients.FirstOrDefault()!;
             }
-            if (State.AscensionLevel >= 10) { GameRngDraws++; State.Acts.Last().SetSecondBossEncounter(State.Acts.Last().Bosses[1]); }
+            if (HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.DoubleBoss)) { GameRngDraws++; State.Acts.Last().SetSecondBossEncounter(State.Acts.Last().Bosses[1]); }
         }
         [MethodImpl(MethodImplOptions.NoInlining)] public void CleanUp(bool graceful = true) { State = null; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpReplay(RunState state) { Starts++; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetUpNewMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby lobby, bool save = true, DateTimeOffset? daily = null) { SetUpNewSingleplayerCore(state); }
-        [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.LoadRunLobby lobby) { State = state; Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return SavedMultiplayerResult ?? Task.CompletedTask; }
+        [MethodImpl(MethodImplOptions.NoInlining)] public Task SetUpSavedMultiplayer(RunState state, MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.LoadRunLobby lobby) { State = state; InitializeShared(); Starts++; foreach (var model in state.Modifiers) model.OnRunLoaded(state); return SavedMultiplayerResult ?? Task.CompletedTask; }
         [MethodImpl(MethodImplOptions.NoInlining)] public object GetRejoinMessage() => new object();
     }
 }
@@ -248,7 +251,7 @@ namespace MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby
 namespace MegaCrit.Sts2.Core.Entities.Ascension
 {
     public enum AscensionLevel { None, SwarmingElites, WearyTraveler, Poverty, TightBelt, AscendersBane, Inflation, Scarcity, ToughEnemies, DeadlyEnemies, DoubleBoss }
-    public class AscensionManager { [MethodImpl(MethodImplOptions.NoInlining)] public bool HasLevel(AscensionLevel level) => (int)level is >= 1 and <= 10; }
+    public class AscensionManager { public int Level = 10; [MethodImpl(MethodImplOptions.NoInlining)] public bool HasLevel(AscensionLevel level) => (int)level >= 1 && (int)level <= Level; }
 }
 namespace MegaCrit.Sts2.Core.Odds { public static class CardRarityOdds { public static float regularCommonOdds = 0.6f; } }
 #if !ACTUAL_GODOT

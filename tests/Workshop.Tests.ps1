@@ -54,7 +54,7 @@ New-Item -ItemType Directory -Path $out -Force | Out-Null
     Assert-True ((@(Get-ChildItem $content).Name | Sort-Object) -join '|' -eq 'SelectMOD.dll|SelectMOD.json') 'Non-allowlisted payload leaked'
     $metadata = Get-Content (Join-Path $workspace 'workshop.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True ($metadata.visibility -eq 'unlisted' -and !$metadata.dependencies.Count) 'Unexpected visibility/dependencies'
-    Assert-True ($metadata.description.Contains('SelectMOD 0.11.1')) 'Description encoding damaged'
+    Assert-True ($metadata.description.Contains('実機マルチ未確認')) 'Description encoding damaged'
     Assert-True (!(Test-Path (Join-Path $fixture 'config')) -and !(Test-Path (Join-Path $fixture 'save'))) 'Preparation touched config/save'
     $original = [IO.File]::ReadAllText((Join-Path $content 'SelectMOD.dll'))
     New-Item -ItemType File -Path (Join-Path $fixture 'scripts/fail-build') | Out-Null
@@ -76,9 +76,15 @@ $global:LASTEXITCODE = 0
     Expect-Failure { & $publish -PathsFile $paths -UploaderPath $uploader -NoOpen } 'previous upload may have created'
     & $publish -PathsFile $paths -UploaderPath $uploader -WorkshopItemId '123456789' -NoOpen
     Assert-True (!(Test-Path (Join-Path $fixture 'local/workshop/upload-pending.txt'))) 'Successful upload retained pending marker'
+    [IO.File]::WriteAllText((Join-Path $fixture 'workshop/title.txt'), '新版のタイトル')
+    [IO.File]::WriteAllText((Join-Path $fixture 'workshop/description.txt'), '新版の説明')
+    [IO.File]::WriteAllText((Join-Path $workspace 'image.png'), 'stale preview')
     Remove-Item (Join-Path $workspace 'mod_id.txt')
     & $publish -PathsFile $paths -UploaderPath $uploader -NoOpen
     Assert-True ([IO.File]::ReadAllText((Join-Path $workspace 'mod_id.txt')) -eq '123456789') 'Durable ID backup was not restored'
+    $updated = Get-Content (Join-Path $workspace 'workshop.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True ($updated.title -ceq '新版のタイトル' -and $updated.description -ceq '新版の説明') 'Stale listing on repeat upload'
+    Assert-True ((Get-FileHash (Join-Path $workspace 'image.png')).Hash -eq (Get-FileHash (Join-Path $fixture 'workshop/image.png')).Hash) 'Stale cover on repeat upload'
     Expect-Failure { & $publish -PathsFile $paths -UploaderPath $uploader -WorkshopItemId '987654321' -NoOpen } 'Conflicting Workshop item IDs'
     [IO.File]::WriteAllText((Join-Path $game 'sts2.dll'), 'changed game')
     Expect-Failure { & $prepare -PathsFile $paths -NoOpen } 'Unreviewed game reference'

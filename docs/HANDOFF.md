@@ -2,6 +2,10 @@
 
 Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
 
+## Distribution policy — 2026-11-20
+
+Future development and releases target standalone SelectMOD. BaseLib comparison work ended at 0.11.1. The maintainer runs Publish-Workshop.ps1 locally; it stages the current tracked title, description and cover for the existing unlisted item. Multiplayer hardware acceptance is pending.
+
 ## Current handoff — 0.11.1
 
 All-random solo starts skip encounter catalog inspection. A panel failure alone does not veto startup. Extra ascension levels are outside the ten-effect mask. Run restoration checks the frozen origin digest without comparing its historical catalog with current candidates. New multiplayer lobbies still compare catalogs. Missing vanilla Neow reward reads after another transpiler are logged.

@@ -78,6 +78,9 @@ try {
     if ($id -notmatch '^[1-9][0-9]*$') { throw 'Uploader returned an invalid item ID.' }
     [IO.File]::WriteAllText($idBackup, $id)
     Remove-Item -LiteralPath $pending
+    if (Select-String -LiteralPath $report -Pattern 'Failed to set (title|description|preview image)!' -Quiet) {
+        throw "Steam rejected a listing field. Item ID $id was retained. Check local/workshop-upload-report.txt and rerun to update the same item."
+    }
     Write-Host "Workshop item: https://steamcommunity.com/sharedfiles/filedetails/?id=$id"
     Write-Host 'Requested visibility: unlisted. Check the page visibility and any Steam Workshop agreement prompt before sharing the link.'
     if (!$NoOpen -and $env:OS -eq 'Windows_NT') { Start-Process explorer.exe -ArgumentList ('/select,"' + $idFile + '"') | Out-Null }

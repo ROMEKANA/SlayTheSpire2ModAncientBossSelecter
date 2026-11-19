@@ -1,5 +1,9 @@
 # AGENTS.md — Personal AI-First Development Rules
 
+## SelectMOD maintenance policy
+
+Design, build, test and publish the standalone mod without BaseLib. The BaseLib comparison variant was frozen at 0.11.1 and is outside ongoing release work.
+
 ## Purpose and ownership
 
 - This repository is a small personal project, not a team project.

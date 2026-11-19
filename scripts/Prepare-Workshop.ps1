@@ -37,7 +37,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'src/SelectMOD/bin/Release/net9.0/SelectMOD.dll') -Destination $content
     Copy-Item -LiteralPath $manifestPath -Destination $content
     $metadata = [ordered]@{
-        title = 'SelectMOD - ボス・エンシェント選択 [0.11.1 試験版]'
+        title = [IO.File]::ReadAllText((Join-Path $repo 'workshop/title.txt')).Trim()
         description = [IO.File]::ReadAllText((Join-Path $repo 'workshop/description.txt'))
         visibility = 'unlisted'
         changeNote = 'ボス・エンシェントの次回設定を保存。Intent Graph 2のアセンション判定との共存を改善。'

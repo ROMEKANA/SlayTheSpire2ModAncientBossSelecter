@@ -39,19 +39,20 @@ public static class EncounterRuntime
             var catalog = EncounterCatalog.Build(state.Acts, state.UnlockState);
             var rules = pending.Model.ReadRules();
             EncounterCatalog.ValidateChoice(rules, catalog);
+            var originals = state.Acts.Select(Current).ToArray();
             var plan = new ResolvedEncounter[rules.Length];
             for (var i = 0; i < plan.Length; i++)
-                plan[i] = EncounterRules.Resolve(rules[i], Current(state.Acts[i], i),
+                plan[i] = EncounterRules.Resolve(rules[i], originals[i],
                     catalog[i].Bosses.Select(EncounterCatalog.Key).ToArray(), catalog[i].Ancients.Select(EncounterCatalog.Key).ToArray());
             // Resolve and validate every ID before mutating any generated room.
-            var bosses = plan.Select(p => ModelDb.GetById<EncounterModel>(EncounterCatalog.Id(p.Boss))).ToArray();
-            var seconds = plan.Select(p => p.SecondBoss == null ? null : ModelDb.GetById<EncounterModel>(EncounterCatalog.Id(p.SecondBoss))).ToArray();
-            var ancients = plan.Select(p => p.Ancient == null ? null : ModelDb.GetById<AncientEventModel>(EncounterCatalog.Id(p.Ancient))).ToArray();
+            var bosses = plan.Select((p, i) => p.Boss == originals[i].Boss ? null : ModelDb.GetById<EncounterModel>(EncounterCatalog.Id(p.Boss))).ToArray();
+            var seconds = plan.Select((p, i) => p.SecondBoss == originals[i].SecondBoss || p.SecondBoss == null ? null : ModelDb.GetById<EncounterModel>(EncounterCatalog.Id(p.SecondBoss))).ToArray();
+            var ancients = plan.Select((p, i) => p.Ancient == originals[i].Ancient || p.Ancient == null ? null : ModelDb.GetById<AncientEventModel>(EncounterCatalog.Id(p.Ancient))).ToArray();
             for (var i = 0; i < plan.Length; i++)
             {
                 var act = state.Acts[i];
-                act.SetBossEncounter(bosses[i]);
-                act.SetSecondBossEncounter(seconds[i]);
+                if (bosses[i] is { } boss) act.SetBossEncounter(boss);
+                if (seconds[i] is { } second) act.SetSecondBossEncounter(second);
                 if (ancients[i] != null) act.GetRoomsDebug().Ancient = ancients[i]!;
                 ModEntry.WriteLog($"ENCOUNTER_RESOLVED act={i + 1} boss={plan[i].Boss.StableKey} second={plan[i].SecondBoss?.StableKey ?? "none"} ancient={plan[i].Ancient?.StableKey ?? "none"}");
             }

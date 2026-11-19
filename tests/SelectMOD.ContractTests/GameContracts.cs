@@ -49,7 +49,8 @@ namespace MegaCrit.Sts2.Core.Models
         public IEnumerable<AncientEventModel> GetUnlockedAncients(MegaCrit.Sts2.Core.Unlocks.UnlockState state) => Ancients;
         private MegaCrit.Sts2.Core.Rooms.RoomSet _rooms = new();
         public MegaCrit.Sts2.Core.Rooms.RoomSet GetRoomsDebug() => _rooms;
-        public void SetBossEncounter(EncounterModel model) => _rooms.Boss = model;
+        public int BossAssignments;
+        public void SetBossEncounter(EncounterModel model) { BossAssignments++; _rooms.Boss = model; }
         public void SetSecondBossEncounter(EncounterModel? model) => _rooms.SecondBoss = model;
         public ActModel ToMutable() { var clone = (ActModel)MemberwiseClone(); clone._rooms = new(); return clone; }
     }

@@ -132,7 +132,7 @@ internal static class MultiplayerTests
             Check(states.All(s => s.AscensionLevel == 10), "client used stale local ascension");
             Check(games.All(g => g.Manager.GameRngDraws == 7), "peer RNG advancement differs");
             Check(states.All(s => s.Players.Count == count && s.Modifiers.All(m => m is not SelectLobbySettings)), "unbound marker/player count in run");
-            Check(EncounterDraft.Get(0).Boss == null, "host/guest traffic overwrote local defaults");
+            Check(EncounterDraft.Get(0).Boss == EncounterCatalog.Key(targetBoss), "published host choices not remembered");
             Reject(() => MultiplayerSelection.Edit(host, 0, true, null), "edit after freeze");
             host.BeginRunForAllPlayers("seed", host.Modifiers.ToList());
             clients[0].HandleLobbyBeginRunMessage(new LobbyBeginRunMessage { playersInLobby = host.Players, modifiers = final, seed = "seed" }, 1);

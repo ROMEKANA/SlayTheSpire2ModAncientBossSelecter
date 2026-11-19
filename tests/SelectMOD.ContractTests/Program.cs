@@ -106,12 +106,24 @@ try
     screen.AfterInitialized();
     options[5].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
     options[6].UserSelect(Array.IndexOf(catalog[2].Bosses, lateBoss) + 1);
+    var reopened = new EncounterPreferences(dir);
+    Check(reopened.Get(0).Ancient == EncounterCatalog.Key(lockedAncient) && reopened.Get(0).Boss == EncounterCatalog.Key(variantBoss) &&
+        reopened.Get(2).SecondBoss == EncounterCatalog.Key(lateBoss), "fresh preference store lost fixed choices");
+    var recoveryDir = Path.Combine(dir, "preference-recovery");
+    var recovery = new EncounterPreferences(recoveryDir);
+    recovery.Save([new(0, new ModelKey("ENCOUNTER", "removed-content"), EncounterCatalog.Key(lockedAncient))]);
+    var recovered = new EncounterPreferences(recoveryDir).Get(0);
+    Check(recovered.Boss == null && recovered.Ancient == EncounterCatalog.Key(lockedAncient), "removed mod discarded surviving picks");
+    File.WriteAllText(Path.Combine(recoveryDir, "encounter-choices.json"), "{broken");
+    Check(new EncounterPreferences(recoveryDir).Get(0).Ancient == null && Directory.GetFiles(recoveryDir, "*.invalid-*").Length == 1,
+        "invalid preference not preserved and recovered");
     var game = new NGame();
     var state = await game.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(game.Calls == 1, "original start invoked more than once");
     Check(!state.IsCustomGame && state.AscensionLevel == 10, "changed run classification/cumulative ascension");
     Check(state.Acts[0].BossEncounterForTest() == variantBoss, "selected alternate boss not applied");
     Check(state.Acts[0].GetRoomsDebug().Ancient == lockedAncient, "selected locked ancient not applied");
+    Check(state.Acts[1].BossAssignments == 1, "unselected boss setter invoked twice");
     Check(state.Acts[1].GetRoomsDebug().Boss == boss1, "unselected Act changed");
     Check(game.Manager.GameRngDraws == 7, "selection consumed additional game RNG");
     var settings = state.Modifiers.OfType<SelectEncounterSettings>().Single();
@@ -178,6 +190,7 @@ try
     Descendants<Button>(screen).Single(b => b.Name == "SelectMODRandomReset").Press();
     Check(EncounterDraft.Get(0) == (null, null) && options.All(o => o.Selected == 0), "reset did not update draft and controls");
     Check(settings.SelectEncounterRules == frozenRules, "next-run edit changed saved rules");
+    Check(new EncounterPreferences(dir).Get(2) == new LobbyChoice(2, null, null), "reset not persisted");
     var vanillaGame = new NGame();
     var vanillaState = await vanillaGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, false, 10);
     Check(!vanillaState.IsCustomGame && vanillaState.Modifiers.Count == 0 && vanillaState.AscensionLevel == 10, "random start altered standard run");

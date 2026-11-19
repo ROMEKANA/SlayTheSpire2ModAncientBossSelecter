@@ -60,15 +60,19 @@ public static class MultiplayerSelection
         if (index < 0 || index >= choices.Length) throw new InvalidOperationException("SelectMOD: Act番号が不正です。");
         choices[index] = second ? choices[index] with { SecondBoss = key } : boss ? choices[index] with { Boss = key } : choices[index] with { Ancient = key };
         MultiplayerContract.Create(session.Id, checked(session.Revision + 1), choices, lobby.Ascension);
-        session.Draft = choices;
-        try { lobby.SetModifiers(lobby.Modifiers.ToArray()); } catch { session.Draft = null; throw; }
+        PublishHostEdit(lobby, session, choices);
     }
     public static void Reset(StartRunLobby lobby)
     {
         if (!Editable(lobby)) throw new InvalidOperationException("SelectMOD: ホストだけが設定できます。");
         var session = Sessions.GetOrCreateValue(lobby);
-        session.Draft = EncounterCatalog.BuildOptions().Select(a => new LobbyChoice(a.Index, null, null)).ToArray();
+        PublishHostEdit(lobby, session, EncounterCatalog.BuildOptions().Select(a => new LobbyChoice(a.Index, null, null)).ToArray());
+    }
+    private static void PublishHostEdit(StartRunLobby lobby, Session session, LobbyChoice[] choices)
+    {
+        session.Draft = choices;
         try { lobby.SetModifiers(lobby.Modifiers.ToArray()); } catch { session.Draft = null; throw; }
+        EncounterDraft.RememberHost(choices);
     }
     private static LobbyChoice[] InitialChoices() => EncounterCatalog.BuildOptions().Select(a => new LobbyChoice(a.Index, EncounterDraft.Get(a.Index).Boss, EncounterDraft.Get(a.Index).Ancient, a.Index == 2 ? EncounterDraft.SecondBoss : null)).ToArray();
     public static void BeforeSetModifiers(StartRunLobby lobby, ref IReadOnlyCollection<ModifierModel> modifiers)

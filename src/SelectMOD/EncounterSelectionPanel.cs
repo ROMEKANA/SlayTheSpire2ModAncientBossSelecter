@@ -84,6 +84,7 @@ public static class EncounterSelectionPanel
                 UpdateStatus();
                 ModEntry.WriteLog($"SELECTION_PANEL_TOGGLE expanded={expanded}");
             };
+            AscensionPanel.Add(screen, list, refresh);
             foreach (var act in catalog)
             {
                 list.AddChild(new Label { Text = $"Act {act.Index + 1}" });
@@ -123,7 +124,7 @@ public static class EncounterSelectionPanel
     private static bool CanEdit(Control screen)
     {
         var lobby = MultiplayerSelection.GetLobby(screen);
-        return !MultiplayerSelection.IsNetwork(lobby) || MultiplayerSelection.Editable(lobby!);
+        return !MultiplayerSelection.IsNetwork(lobby) || (lobby!.IsCustom && MultiplayerSelection.Editable(lobby));
     }
     private static void AddChoice<T>(Control screen, VBoxContainer list, string label, int index, bool boss, T[] candidates, Func<T, string> title,
         List<OptionButton> controls, List<Action> refresh, Action update) where T : AbstractModel

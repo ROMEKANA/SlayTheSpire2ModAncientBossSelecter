@@ -28,7 +28,9 @@ public static class AscensionRuntime
         if (manager.IsInProgress) throw new InvalidOperationException("SelectMOD: 前のランが終了していません。");
         var model = state.Modifiers.OfType<SelectAscensionSettings>().SingleOrDefault();
         if (model == null) return null;
+        ModEntry.WriteLog($"ASCENSION_PREPARE level={state.AscensionLevel} mask={model.Snapshot.Mask}");
         VerifyPatchOwners();
+        RuntimeHelpers.RunClassConstructor(typeof(CardRarityOdds).TypeHandle);
         Release(manager);
         var binding = new Binding(model.Freeze(), state);
         Runs.Add(manager, binding);
@@ -54,6 +56,8 @@ public static class AscensionRuntime
             throw new InvalidOperationException("SelectMOD: アセンション判定が設定と一致しません。");
         ModEntry.WriteLog($"ASCENSION_BOUND mask={binding.Settings.Mask} observedMask={observed} enabled={binding.Settings.Describe()}");
     }
+
+    public static object? BindingFor(RunManager manager) => Runs.TryGetValue(manager, out var binding) ? binding : null;
 
     public static bool TryGet(RunManager manager, out AscensionSettings settings)
     {
@@ -166,5 +170,25 @@ internal static class AscensionSetupPatch
     {
         if (__state != null && __exception != null) AscensionRuntime.Release(__instance, __state);
         return __exception;
+    }
+}
+
+[HarmonyPatch]
+internal static class AscensionLoadFailurePatch
+{
+    private static IEnumerable<System.Reflection.MethodBase> TargetMethods() =>
+        new[] { nameof(RunManager.SetUpSavedSingleplayer), nameof(RunManager.SetUpSavedMultiplayer) }
+        .Select(name => AccessTools.Method(typeof(RunManager), name));
+
+    private static void Postfix(RunManager __instance, ref Task __result)
+    {
+        if (AscensionRuntime.BindingFor(__instance) is object token)
+            __result = Observe(__result, __instance, token);
+    }
+
+    private static async Task Observe(Task load, RunManager manager, object token)
+    {
+        try { await load; }
+        catch { AscensionRuntime.Release(manager, token); throw; }
     }
 }

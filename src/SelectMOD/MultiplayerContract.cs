@@ -5,7 +5,12 @@ using MegaCrit.Sts2.Core.Models;
 namespace SelectMOD;
 
 public sealed record LobbyChoice(int Index, ModelKey? Boss, ModelKey? Ancient);
-public sealed record LobbyDraft(int Protocol, string Session, int Revision, string Catalog, int Ascension, LobbyChoice[] Choices);
+public sealed record LobbyDraft(int Protocol, string Session, int Revision, string Catalog, int Ascension, LobbyChoice[] Choices)
+{
+    // Omit the default so existing 0.6.0 saved envelopes retain their canonical digest.
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? AscensionMask { get; init; }
+}
 public sealed record LobbyEnvelope(LobbyDraft Draft, string Digest);
 
 public static class MultiplayerContract
@@ -23,9 +28,9 @@ public static class MultiplayerContract
             Ancients = options[index].Ancients.Select(EncounterCatalog.Key).OrderBy(k => k.StableKey, StringComparer.Ordinal).ToArray()
         }).ToArray() }));
     }
-    public static LobbyEnvelope Create(string session, int revision, LobbyChoice[] choices, int ascension = 0)
+    public static LobbyEnvelope Create(string session, int revision, LobbyChoice[] choices, int ascension = 0, int mask = AscensionSettings.All)
     {
-        var draft = new LobbyDraft(Protocol, session, revision, CatalogDigest(), ascension, choices.ToArray());
+        var draft = new LobbyDraft(Protocol, session, revision, CatalogDigest(), ascension, choices.ToArray()) { AscensionMask = mask == AscensionSettings.All ? null : mask };
         var envelope = new LobbyEnvelope(draft, Hash(EncounterRules.Encode(draft)));
         Validate(envelope);
         return envelope;
@@ -44,7 +49,7 @@ public static class MultiplayerContract
     {
         var draft = envelope.Draft;
         if (draft == null || draft.Protocol != Protocol || !Guid.TryParseExact(draft.Session, "N", out _) || draft.Revision < 1 || draft.Ascension is < 0 or > 10 ||
-            draft.Choices == null || draft.Choices.Length is < 1 or > EncounterRules.MaxActs ||
+            draft.AscensionMask is < 0 or >= AscensionSettings.All || draft.Choices == null || draft.Choices.Length is < 1 or > EncounterRules.MaxActs ||
             envelope.Digest != Hash(EncounterRules.Encode(draft))) throw new InvalidOperationException("SelectMOD: マルチ設定の版／整合性が一致しません。");
         if (draft.Catalog != CatalogDigest()) throw new InvalidOperationException("SelectMOD: 候補一覧／MOD版がホストと異なります。全員のゲーム・MOD構成を揃えてください。");
         var options = EncounterCatalog.BuildOptions();

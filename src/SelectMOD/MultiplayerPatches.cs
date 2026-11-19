@@ -38,6 +38,7 @@ internal static class MultiplayerReceivePatch
     {
         try
         {
+            if (__instance.GameMode != GameMode.Standard) return true;
             if (!MultiplayerSelection.IsHostSender(__instance, __1)) { ModEntry.WriteLog("MP_IGNORED unauthorized preview sender"); return false; }
             var ownIds = new[] { ModelDb.GetId<SelectLobbySettings>(), ModelDb.GetId<SelectEncounterSettings>(), ModelDb.GetId<SelectSettingsProbe>(), ModelDb.GetId<SelectAscensionSettings>() };
             return MultiplayerSelection.Accept(__instance, __0.modifiers.Where(m => ownIds.Contains(m.Id)).Select(ModifierModel.FromSerializable), false);
@@ -52,6 +53,7 @@ internal static class MultiplayerReceiveStartPatch
     {
         try
         {
+            if (__instance.GameMode != GameMode.Standard) return true;
             if (!MultiplayerSelection.IsHostSender(__instance, __1)) { ModEntry.WriteLog("MP_IGNORED unauthorized start sender"); return false; }
             if (__0.playersInLobby?.Count is not (>= 2 and <= MultiplayerContract.MaxPlayers)) throw new InvalidOperationException("SelectMOD: マルチ参加者数が対応範囲外です。");
             var ownIds = new[] { ModelDb.GetId<SelectLobbySettings>(), ModelDb.GetId<SelectEncounterSettings>(), ModelDb.GetId<SelectSettingsProbe>(), ModelDb.GetId<SelectAscensionSettings>() };
@@ -76,7 +78,12 @@ internal static class MultiplayerStartPatch
         __state = null;
         try
         {
-            if (!ModEntry.IsActive || !__2 || __7 != null || __0.Count != __1.Players.Count || __0.Count is < 2 or > MultiplayerContract.MaxPlayers)
+            if (__7 != null || __1.GameMode != GameMode.Standard)
+            {
+                __4 = __4.Where(m => m is not SelectLobbySettings).ToArray();
+                return;
+            }
+            if (!ModEntry.IsActive || !__2 || __0.Count != __1.Players.Count || __0.Count is < 2 or > MultiplayerContract.MaxPlayers)
                 throw new InvalidOperationException("SelectMOD: 未対応のマルチ開始条件です。");
             __state = MultiplayerSelection.ReadSnapshot(__4).Digest;
             __4 = MultiplayerSelection.Bind(__1, __3, __4, __0.Count, out __6);
@@ -123,6 +130,7 @@ internal static class MultiplayerAscensionPreviewPatch
     private static void Postfix(StartRunLobby __instance)
     {
         if (MultiplayerSelection.Editable(__instance)) __instance.SetModifiers(__instance.Modifiers.ToArray());
+        else MultiplayerSelection.Notify(__instance);
     }
 }
 

@@ -32,7 +32,7 @@ internal static class LoadLobbyGuard
     private static bool Prefix(LoadRunLobby __instance)
     {
         if (!__instance.IsAboutToBeginGame()) return true;
-        try { SavedSettingsGuard.Validate(__instance.Run); if (__instance.Run.Modifiers.Any(m => m.Id == ModelDb.GetId<SelectEncounterSettings>()) && __instance.Players.Count != __instance.Run.Players.Count) throw new InvalidOperationException("SelectMOD: 保存ランの参加者全員が揃ってから再開してください。"); return true; }
+        try { SavedSettingsGuard.Validate(__instance.Run); if (__instance.Run.Modifiers.Any(m => m.Id == ModelDb.GetId<SelectEncounterSettings>() || m.Id == ModelDb.GetId<SelectAscensionSettings>()) && __instance.Players.Count != __instance.Run.Players.Count) throw new InvalidOperationException("SelectMOD: 保存ランの参加者全員が揃ってから再開してください。"); return true; }
         catch (Exception e) { try { __instance.SetReady(false); } catch (Exception readiness) { ModEntry.WriteLog("MP_LOAD_UNREADY_FAILED " + readiness.Message); } ModEntry.Reject(e.Message); return false; }
     }
 }
@@ -60,7 +60,7 @@ internal static class SavedMultiplayerGuard
         if (__instance.IsInProgress) throw new InvalidOperationException("SelectMOD: 前のランが終了していません。");
         ModEntry.WriteLog("MP_RESUME_ATTEMPT role=" + __1.NetService.Type);
         SavedSettingsGuard.Validate(__1.Run); ProbeRules.ValidateRun(__0);
-        if (__0.Modifiers.OfType<SelectEncounterSettings>().Any() && (__0.Players.Count < 2 || __1.Players.Count != __0.Players.Count)) throw new InvalidOperationException("SelectMOD: 保存ランの参加者全員が必要です。");
+        if (__0.Modifiers.Any(m => m is SelectEncounterSettings or SelectAscensionSettings) && (__0.Players.Count < 2 || __1.Players.Count != __0.Players.Count)) throw new InvalidOperationException("SelectMOD: 保存ランの参加者全員が必要です。");
         foreach (var settings in __0.Modifiers.OfType<SelectEncounterSettings>()) EncounterRuntime.ValidateLoaded(__0, settings);
         __state = MultiplayerSelection.Track(__instance, __0);
     }
@@ -105,7 +105,7 @@ internal static class SoloNewGuard
     }
 }
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpSavedSingleplayer))]
-internal static class SoloLoadGuard { private static void Prefix(RunState __0) { ProbeRules.ValidateRun(__0); if (__0.Modifiers.OfType<SelectEncounterSettings>().Any() && __0.Players.Count != 1) throw new InvalidOperationException("SelectMOD: マルチ保存はマルチで再開してください。"); } }
+internal static class SoloLoadGuard { private static void Prefix(RunState __0) { ProbeRules.ValidateRun(__0); if (__0.Modifiers.Any(m => m is SelectEncounterSettings or SelectAscensionSettings) && __0.Players.Count != 1) throw new InvalidOperationException("SelectMOD: マルチ保存はマルチで再開してください。"); } }
 
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.GenerateRooms))]
 internal static class EncounterGeneratePatch

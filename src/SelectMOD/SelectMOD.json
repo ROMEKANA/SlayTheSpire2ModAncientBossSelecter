@@ -3,7 +3,7 @@
   "name": "SelectMOD",
   "author": "ROMEKANA",
   "description": "ボス・エンシェント選択。ソロ＋2～4人Standardカスタムのマルチ試験版。全員同じ版が必要。",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "has_dll": true,
   "has_pck": false,
   "affects_gameplay": true,

@@ -24,7 +24,7 @@ public static class MultiplayerSelection
     private static readonly ConditionalWeakTable<RunManager, object> ActiveRuns = new();
     public static event Action<StartRunLobby>? Changed;
     public static bool IsNetwork(StartRunLobby? lobby) => lobby?.NetService.Type is NetGameType.Host or NetGameType.Client;
-    public static bool Supported(StartRunLobby lobby) => IsNetwork(lobby) && lobby.IsCustom && lobby.GameMode == GameMode.Standard;
+    public static bool Supported(StartRunLobby lobby) => IsNetwork(lobby) && lobby.GameMode == GameMode.Standard;
     public static bool Editable(StartRunLobby lobby) => Supported(lobby) && !IsClosed(lobby) && lobby.NetService.Type == NetGameType.Host && !Sessions.GetOrCreateValue(lobby).Starting;
     public static StartRunLobby? GetLobby(object screen) =>
         (AccessTools.Property(screen.GetType(), "Lobby")?.GetValue(screen) ?? AccessTools.Field(screen.GetType(), "_lobby")?.GetValue(screen)) as StartRunLobby;
@@ -34,6 +34,8 @@ public static class MultiplayerSelection
         var choices = Sessions.GetOrCreateValue(lobby).Current?.Draft.Choices;
         return choices != null && index < choices.Length ? (choices[index].Boss, choices[index].Ancient) : (null, null);
     }
+    internal static int Mask(StartRunLobby lobby) => Sessions.GetOrCreateValue(lobby).Current?.Draft.AscensionMask ?? AscensionSettings.All;
+
     public static string Status(StartRunLobby lobby)
     {
         if (IsClosed(lobby)) return "ロビーは終了しました。";
@@ -50,7 +52,7 @@ public static class MultiplayerSelection
     }
     public static void Edit(StartRunLobby lobby, int index, bool boss, ModelKey? key)
     {
-        if (!Editable(lobby)) throw new InvalidOperationException("SelectMOD: ホストだけが開始前に設定できます。");
+        if (!lobby.IsCustom || !Editable(lobby)) throw new InvalidOperationException("SelectMOD: ホストだけが開始前に設定できます。");
         var session = Sessions.GetOrCreateValue(lobby);
         var choices = (session.Current?.Draft.Choices ?? InitialChoices()).ToArray();
         if (index < 0 || index >= choices.Length) throw new InvalidOperationException("SelectMOD: Act番号が不正です。");
@@ -61,7 +63,7 @@ public static class MultiplayerSelection
     }
     public static void Reset(StartRunLobby lobby)
     {
-        if (!Editable(lobby)) throw new InvalidOperationException("SelectMOD: ホストだけが設定できます。");
+        if (!lobby.IsCustom || !Editable(lobby)) throw new InvalidOperationException("SelectMOD: ホストだけが設定できます。");
         var session = Sessions.GetOrCreateValue(lobby);
         session.Draft = EncounterCatalog.BuildOptions().Select(a => new LobbyChoice(a.Index, null, null)).ToArray();
         try { lobby.SetModifiers(lobby.Modifiers.ToArray()); } catch { session.Draft = null; throw; }
@@ -70,10 +72,15 @@ public static class MultiplayerSelection
     public static void BeforeSetModifiers(StartRunLobby lobby, ref IReadOnlyCollection<ModifierModel> modifiers)
     {
         if (!IsNetwork(lobby)) return;
+        if (lobby.GameMode != GameMode.Standard)
+        {
+            modifiers = modifiers.Where(m => m is not SelectLobbySettings).ToArray();
+            return;
+        }
         if (!Editable(lobby)) throw new InvalidOperationException("SelectMOD: 非対応モード／ゲスト／開始中の設定変更です。");
         if (modifiers.Any(m => m is SelectEncounterSettings or SelectSettingsProbe or SelectAscensionSettings) || modifiers.OfType<SelectLobbySettings>().Count() > 1) throw new InvalidOperationException("SelectMOD: 不正なロビー設定です。");
         var session = Sessions.GetOrCreateValue(lobby);
-        var envelope = MultiplayerContract.Create(session.Id, checked(session.Revision + 1), session.Draft ?? session.Current?.Draft.Choices ?? InitialChoices(), lobby.Ascension);
+        var envelope = MultiplayerContract.Create(session.Id, checked(session.Revision + 1), session.Draft ?? session.Current?.Draft.Choices ?? (lobby.IsCustom ? InitialChoices() : EncounterCatalog.BuildOptions().Select(a => new LobbyChoice(a.Index, null, null)).ToArray()), lobby.Ascension, AscensionPreference.Read());
         var model = (SelectLobbySettings)ModelDb.Modifier<SelectLobbySettings>().ToMutable();
         model.SelectLobbyPayload = EncounterRules.Encode(envelope); model.Freeze();
         // The host must explicitly become ready again after every edit. The
@@ -124,6 +131,7 @@ public static class MultiplayerSelection
     }
     public static bool FreezeHost(StartRunLobby lobby, ref List<ModifierModel> models)
     {
+        if (lobby.GameMode != GameMode.Standard) { models.RemoveAll(m => m is SelectLobbySettings); return true; }
         if (!Supported(lobby) || IsClosed(lobby) || lobby.NetService.Type != NetGameType.Host) throw new InvalidOperationException("SelectMOD: マルチはホストがStandardカスタムランから開始してください。");
         var session = Sessions.GetOrCreateValue(lobby);
         if (session.Starting) return false;
@@ -153,6 +161,7 @@ public static class MultiplayerSelection
         ascension = envelope.Draft.Ascension;
         var rules = MultiplayerContract.Bind(envelope, acts);
         var output = models.Where(m => m is not SelectLobbySettings).ToList();
+        if (!lobby.IsCustom && EncounterRules.HasChanges(rules)) throw new InvalidOperationException("通常マルチではボス指定は使えません。");
         if (EncounterRules.HasChanges(rules))
         {
             var settings = (SelectEncounterSettings)ModelDb.Modifier<SelectEncounterSettings>().ToMutable();
@@ -160,7 +169,7 @@ public static class MultiplayerSelection
             settings.SelectMultiplayerOrigin = EncounterRules.Encode(envelope); settings.SelectMultiplayerPlayers = players; output.Add(settings);
         }
         ModEntry.WriteLog($"MP_CONTRACT_CAPTURED digest={envelope.Digest} role={lobby.NetService.Type} phase=start");
-        return output;
+        return AscensionPreference.Apply(output, ascension, envelope.Draft.AscensionMask ?? AscensionSettings.All);
     }
     public static void Reject(StartRunLobby lobby, string reason)
     {
@@ -171,7 +180,7 @@ public static class MultiplayerSelection
     public static void Release(StartRunLobby lobby) { Sessions.Remove(lobby); Closed.Remove(lobby); Closed.Add(lobby, new object()); Changed?.Invoke(lobby); }
     public static object? Track(RunManager manager, RunState state)
     {
-        if (!state.Modifiers.OfType<SelectEncounterSettings>().Any()) return null;
+        if (!state.Modifiers.Any(m => m is SelectEncounterSettings or SelectAscensionSettings)) return null;
         var token = new object(); ActiveRuns.Remove(manager); ActiveRuns.Add(manager, token); return token;
     }
     public static void Clear(RunManager manager, object? token = null) { if (ActiveRuns.TryGetValue(manager, out var active) && (token == null || ReferenceEquals(active, token))) ActiveRuns.Remove(manager); }

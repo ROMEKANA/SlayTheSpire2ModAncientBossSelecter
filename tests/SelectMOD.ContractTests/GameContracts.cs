@@ -293,6 +293,7 @@ namespace Godot
     public class VBoxContainer : Control { } public class HBoxContainer : Control { } public class ScrollContainer : Control { }
     public class Label : Control { public string Text { get; set; } = ""; public TextServer.AutowrapMode AutowrapMode { get; set; } }
     public class OptionButton : Control { public bool Disabled { get; set; } public bool FitToLongestItem { get; set; } public Control GetPopup() => new(); public List<string> Items { get; } = []; public int Selected { get; private set; } public void AddItem(string item) => Items.Add(item); public void Select(int index) => Selected = index; public event Action<long>? ItemSelected; public void UserSelect(int index) { Selected = index; ItemSelected?.Invoke(index); } }
+    public class CheckBox : Button { public bool ButtonPressed { get; set; } public void SetPressedNoSignal(bool value) => ButtonPressed = value; }
     public class Button : Control { public bool Disabled { get; set; } public string Text { get; set; } = ""; public event Action? Pressed; public void Press() => Pressed?.Invoke(); }
     public class AcceptDialog : Control
     {

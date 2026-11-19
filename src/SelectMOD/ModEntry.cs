@@ -36,7 +36,7 @@ public static class ModEntry
             harmony.PatchAll(typeof(ModEntry).Assembly);
             EncounterSelectionPanel.Install();
             IsActive = true;
-            WriteLog("INITIALIZED version=0.7.0 solo selector + Standard custom multiplayer beta; selectable ascension");
+            WriteLog("INITIALIZED version=0.7.1 solo selector + Standard custom multiplayer beta; selectable ascension");
         }
         catch (Exception e)
         {

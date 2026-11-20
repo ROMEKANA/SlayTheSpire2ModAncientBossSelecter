@@ -1,16 +1,32 @@
 # SelectMOD handoff
 
-Snapshot as of 2026-11-19 JST. Repository: [ROMEKANA/SlayTheSpire2ModAncientBossSelecter](https://github.com/ROMEKANA/SlayTheSpire2ModAncientBossSelecter). The last functional change on main at handoff was `11830cd`, the Workshop uploader fix. Read [AGENTS.md](../AGENTS.md), [DESIGN_AND_LESSONS.md](../DESIGN_AND_LESSONS.md), and [STS2_MODDING.md](../STS2_MODDING.md) before changing behavior. Give the owner short instructions in Japanese. Use the existing script entry points.
+## Resume here — 2026-11-20 JST
 
-## 0.11.2 host report and tooltip
+The owner paused development at standalone **0.11.2**, implemented on main at `fe3aa2f`. Fetch main and compare the current HEAD and manifest with that baseline before editing. There is no queued feature or scheduled upload. Follow the new request. Read [project rules](../AGENTS.md) and the [Japanese README](../README.md) for owner-facing commands. Paths below are relative to the repository root.
 
-Restored the original encounter modifier title. A one-off error was reported by the first normal multiplayer host; exact message unknown. Exercise a fresh host before any preferences exist and log failures from initial host settings publication. Real-game reproduction is pending.
+### Evidence at the pause
 
-## Distribution policy — 2026-11-20
+- The owner played solo and verified A4 off with the potion slot preserved and A5 on with the curse present. A normal multiplayer host reported a one-time error after installation and could not reproduce it. The wording, originating mod and full multiplayer save/resume outcome are unknown.
+- 0.11.2 restored the native tooltip title “SelectMOD ボス・エンシェント選択”. The latest fixture run passed 241 checks and a separate peer-process comparison. The standalone Godot API compile check and Workshop orchestration fixture passed. Windows game rendering and the latest release upload were not verified in that session.
+- The earlier upload to item 3842017022 reached Steam commit and returned AccessDenied. That item is retired. The owner runs the uploader locally. The replacement flow stores the new ID and selected cover in `local/workshop-selectmod/`. Check the owner's latest successful upload report or URL for the actual replacement ID and version. Publishing uses unlisted visibility. BaseLib development ended at 0.11.1.
 
-Future development and releases target standalone SelectMOD. BaseLib comparison work ended at 0.11.1. The maintainer runs Publish-Workshop.ps1 locally. The replacement unlisted item uses local/workshop-selectmod for identity and the user-selected cover. The old local/workshop directory belongs to the retired listing. Multiplayer hardware acceptance is pending.
+### If a bug is reported
 
-## Current handoff — 0.11.1
+Start with the installed versions, the first failing action and the symptom. For a recurrence on the host, collect `local/selectmod-probe.txt` immediately using `.\scripts\Export-ProbeReport.ps1`. Look for `MP_HOST_INIT_FAILED` (0.11.2 onward), its exception and the surrounding game log. For a host/guest disagreement, collect each peer's report with its role and compare using `scripts/Compare-MultiplayerReports.ps1 -Reports`. See [multiplayer flows](MULTIPLAYER.md). For an Intent Graph 2 interaction, distinguish graph preview from battle behavior. Some graphs read the scalar level directly and can disagree with a sparse mask. See [ascension audit](ASCENSION_AUDIT.md).
+
+### If a feature is requested
+
+Trace panel input through next-run preferences, lobby synchronization, run capture and save/load as applicable. UI lives in `EncounterSelectionPanel` and `AscensionPanel`; encounter resolution in `EncounterRuntime`; host authority in `MultiplayerSelection`. Keep Standard runs classified as Standard, preserve daily behavior and use frozen run settings on resume. Guests must keep their own next-run preferences. Extend the relevant fixture and run `dotnet run --project tests/SelectMOD.ContractTests -c Release`. For UI/API changes also build `tests/SelectMOD.GodotCompileChecks` in Release using the standalone default. See [validation history](VALIDATION.md).
+
+### If the game updates
+
+The reviewed baseline is Steam build 26660232. Compare the installed assemblies against [reviewed fingerprints](../compatibility/reviewed-builds.json). From the owner's Windows checkout, `.\scripts\Export-GameSources.ps1` produces `local/selectmod-sources.txt`. Review the affected patch targets, signatures, callers and initialization order against [the installed-game review](INSTALLED_GAME_REVIEW.md) before updating fingerprints or fixtures. Rebuild against the installed game with `.\scripts\Setup.ps1`, then exercise the affected new-run and resume paths. The owner handles gameplay acceptance and Steam publication.
+
+## Historical notes through 0.11.1
+
+The sections below record earlier releases, checks and publishing procedures. Use the current workflow above and the README when resuming.
+
+## Previous handoff — 0.11.1
 
 All-random solo starts skip encounter catalog inspection. A panel failure alone does not veto startup. Extra ascension levels are outside the ten-effect mask. Run restoration checks the frozen origin digest without comparing its historical catalog with current candidates. New multiplayer lobbies still compare catalogs. Missing vanilla Neow reward reads after another transpiler are logged.
 

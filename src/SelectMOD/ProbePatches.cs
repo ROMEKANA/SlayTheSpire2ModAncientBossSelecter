@@ -39,9 +39,11 @@ internal static class LoadLobbyGuard
 [HarmonyPatch(typeof(RunManager), nameof(RunManager.SetUpNewMultiplayer))]
 internal static class NewMultiplayerGuard
 {
-    private static void Prefix(RunManager __instance, RunState __0, out object? __state)
+    private static void Prefix(RunManager __instance, RunState __0, StartRunLobby __1, DateTimeOffset? __3, out object? __state)
     {
-        __state = null; ProbeRules.ValidateRun(__0);
+        __state = null;
+        if (__3 == null) MultiplayerSelection.ApplyRunClassification(__1, __0);
+        ProbeRules.ValidateRun(__0);
         __state = EncounterRuntime.Prepare(__instance, __0);
         MultiplayerSelection.Track(__instance, __0);
     }

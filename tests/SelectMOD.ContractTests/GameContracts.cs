@@ -168,14 +168,15 @@ namespace MegaCrit.Sts2.Core.Multiplayer.Game.Lobby
         public IReadOnlyList<ModifierModel> Modifiers { get; private set; } = Array.Empty<ModifierModel>();
         public Action<IReadOnlyList<ModifierModel>>? OnPreview;
         public Action<IReadOnlyList<ModifierModel>>? OnStart;
+        public Action? OnModifiersChanged;
         public void SetReady(bool value) { Ready = value; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void SetGameMode(GameMode value) { GameMode = value; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void HandleGameModeChangedMessage(GameMode value, ulong sender) { GameMode = value; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void SyncAscensionChange(int value) { Ascension = value; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void AddLocalHostPlayer() { }
-        [MethodImpl(MethodImplOptions.NoInlining)] public void SetModifiers(IReadOnlyCollection<ModifierModel> models) { Modifiers = models.ToArray(); OnPreview?.Invoke(Modifiers); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void SetModifiers(IReadOnlyCollection<ModifierModel> models) { Modifiers = models.ToArray(); OnPreview?.Invoke(Modifiers); OnModifiersChanged?.Invoke(); }
         [MethodImpl(MethodImplOptions.NoInlining)] public void InitializeFromMessage(object message) { }
-        [MethodImpl(MethodImplOptions.NoInlining)] public void HandleModifiersChangedMessage(MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.LobbyModifiersChangedMessage message, ulong sender) { Modifiers = message.modifiers.Select(ModifierModel.FromSerializable).ToArray(); }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void HandleModifiersChangedMessage(MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.LobbyModifiersChangedMessage message, ulong sender) { Modifiers = message.modifiers.Select(ModifierModel.FromSerializable).ToArray(); OnModifiersChanged?.Invoke(); }
         [MethodImpl(MethodImplOptions.NoInlining)] public void HandleLobbyBeginRunMessage(MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.LobbyBeginRunMessage message, ulong sender) { Players = message.playersInLobby!; Starts++; OnStart?.Invoke(message.modifiers.Select(ModifierModel.FromSerializable).ToArray()); }
         [MethodImpl(MethodImplOptions.NoInlining)] public void BeginRunForAllPlayers(string seed, List<ModifierModel> modifiers) { Starts++; OnStart?.Invoke(modifiers); }
         [MethodImpl(MethodImplOptions.NoInlining)] public void CleanUp(bool disconnect) { }
@@ -205,7 +206,8 @@ namespace MegaCrit.Sts2.Core.Nodes
             string seed, int ascensionLevel, DateTimeOffset? dailyTime = null)
         {
             Calls++;
-            var state = new RunState { Players = players.Select(p => (int)p.NetId).ToList(), Acts = acts.Select(a => a.ToMutable()).ToList(), Modifiers = modifiers.ToList(), GameMode = lobby.GameMode, IsCustomGame = lobby.IsCustom, AscensionLevel = ascensionLevel };
+            // Exercise a shared native start path that drops the custom flag.
+            var state = new RunState { Players = players.Select(p => (int)p.NetId).ToList(), Acts = acts.Select(a => a.ToMutable()).ToList(), Modifiers = modifiers.ToList(), GameMode = lobby.GameMode, AscensionLevel = ascensionLevel };
             Manager.SetUpNewMultiplayer(state, lobby, shouldSave, dailyTime);
             return Task.FromResult(state);
         }
@@ -236,6 +238,8 @@ namespace MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect
     public class NCharacterSelectScreen : Godot.Control {
         public MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.StartRunLobby? Lobby { get; set; }
         [MethodImpl(MethodImplOptions.NoInlining)] public void AfterInitialized() { }
+        [MethodImpl(MethodImplOptions.NoInlining)] public void ModifiersChanged() =>
+            throw new NotImplementedException("Modifiers should not be changed in standard mode!");
     }
 }
 namespace MegaCrit.Sts2.Core.Nodes.Screens.CustomRun

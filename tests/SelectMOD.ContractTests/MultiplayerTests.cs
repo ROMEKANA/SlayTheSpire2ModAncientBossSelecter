@@ -61,6 +61,11 @@ internal static class MultiplayerTests
             {
                 host.IsCustom = false;
                 foreach (var client in clients) client.IsCustom = false;
+                foreach (var lobby in clients.Prepend(host))
+                {
+                    var characterScreen = new MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect.NCharacterSelectScreen { Lobby = lobby };
+                    lobby.OnModifiersChanged = characterScreen.ModifiersChanged;
+                }
             }
             var deliver = true;
             host.OnPreview = models => { if (deliver) foreach (var client in clients) client.HandleModifiersChangedMessage(new LobbyModifiersChangedMessage { modifiers = Wire(models) }, 1); };
@@ -113,19 +118,30 @@ internal static class MultiplayerTests
             MultiplayerSelection.Edit(host, 2, true, EncounterCatalog.Key(targetBoss));
             MultiplayerSelection.Edit(host, 2, true, EncounterCatalog.Key(targetBoss), second: true);
             var final = Wire(host.Modifiers);
+            // Exercise the custom screen's native modifier edit and final packet.
+            if (count == 4)
+            {
+                hostFlame.Press();
+                host.SetModifiers([new MegaCrit.Sts2.Core.Models.Events.FixtureRewardModifier()]);
+                AscensionPreference.Write(AscensionSettings.All);
+            }
             var states = new List<RunState>(); var games = new List<NGame>();
             var players = host.Players.Select(id => new Player { NetId = (ulong)id }).ToList();
             foreach (var client in clients) client.OnStart = models => {
                 var game = new NGame(); games.Add(game);
-                states.Add(game.StartNewMultiplayerRun(players, client, true, acts, models, "seed", 0).GetAwaiter().GetResult());
+                states.Add(game.StartNewMultiplayerRun(players, client, true, acts, client.IsCustom ? models : [], "seed", 0).GetAwaiter().GetResult());
             };
             host.OnStart = models => {
                 foreach (var client in clients) client.HandleLobbyBeginRunMessage(new LobbyBeginRunMessage { playersInLobby = host.Players.ToList(), modifiers = Wire(models), seed = "seed" }, 1);
                 var game = new NGame(); games.Add(game);
-                states.Add(game.StartNewMultiplayerRun(players, host, true, acts, models, "seed", 10).GetAwaiter().GetResult());
+                states.Add(game.StartNewMultiplayerRun(players, host, true, acts, host.IsCustom ? models : [], "seed", 10).GetAwaiter().GetResult());
             };
             host.BeginRunForAllPlayers("seed", host.IsCustom ? host.Modifiers.ToList() : []);
             Check(states.Count == count && states.All(s => s.IsCustomGame == host.IsCustom), "start lost normal/custom classification");
+            Check(states.All(s => s.Modifiers.OfType<MegaCrit.Sts2.Core.Models.Events.FixtureRewardModifier>().Count() == (count == 4 ? 1 : 0)), "native custom modifier lost or introduced");
+            if (count == 4)
+                Check(states.All(s => s.Modifiers.OfType<SelectAscensionSettings>().Single().Snapshot.Mask == (AscensionSettings.All ^ 8)),
+                    "native custom modifier edit discarded the independent ascension mask");
             Check(states.All(s => s.Acts[0].GetRoomsDebug().Boss.Id == targetBoss.Id && s.Acts[0].GetRoomsDebug().Ancient.Id == targetAncient.Id), "peers did not use host choices");
             Check(states.Select(s => s.Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults).Distinct().Count() == 1, "peer result plans differ");
             Check(states.All(s => s.Acts[2].GetRoomsDebug().Boss.Id == targetBoss.Id && s.Acts[2].GetRoomsDebug().SecondBoss?.Id == targetBoss.Id), "guest lost same-boss A10 selection");
@@ -247,8 +263,8 @@ internal static class MultiplayerTests
         var randomHost = Lobby(NetGameType.Host); randomHost.AddLocalHostPlayer();
         RunState? randomState = null; var randomGame = new NGame();
         randomHost.OnStart = mods => randomState = randomGame.StartNewMultiplayerRun(new() { new Player { NetId = 1 }, new Player { NetId = 2 } }, randomHost, true, acts, mods, "seed", 0).GetAwaiter().GetResult();
-        randomHost.BeginRunForAllPlayers("seed", randomHost.Modifiers.ToList());
-        Check(randomState != null && randomState.Modifiers.Count == 0, "all-random transport marker leaked into gameplay");
+        randomHost.BeginRunForAllPlayers("seed", []);
+        Check(randomState != null && randomState.IsCustomGame && randomState.Modifiers.Count == 0, "empty custom run lost its classification or retained the transport marker");
         Check(randomGame.Manager.GameRngDraws == 7 && randomState!.AscensionLevel == 10, "all-random native RNG/host ascension changed");
         randomGame.Manager.CleanUp(); randomHost.CleanUp(false);
         EncounterDraft.Set(0, true, originalSolo.Boss); EncounterDraft.Set(0, false, originalSolo.Ancient);
@@ -307,7 +323,7 @@ internal static class MultiplayerTests
                 return JsonSerializer.Deserialize<ProcessResult>(File.ReadAllText(output))!;
             }
             var peers = await Task.WhenAll(Child(1), Child(2));
-            var expectedContext = MultiplayerContract.Hash(EncounterRules.Encode(new { Seed = "seed", Ascension = 10, Players = players.Select(p => p.NetId).ToArray(), Acts = acts.Select(EncounterCatalog.Key).ToArray() }));
+            var expectedContext = MultiplayerContract.Hash(EncounterRules.Encode(new { Seed = "seed", Ascension = 10, Custom = expected.IsCustomGame, Players = players.Select(p => p.NetId).ToArray(), Acts = acts.Select(EncounterCatalog.Key).ToArray() }));
             if (peers.Any(p => p.Context != expectedContext || p.Plan != expected.Modifiers.OfType<SelectEncounterSettings>().Single().SelectEncounterResults || p.Rng != 7 || p.Players != players.Count) || peers[0].Context != peers[1].Context)
                 throw new Exception("Separate-process peers disagree with host or each other");
             Console.WriteLine("PASS: two separate .NET peer processes agree on host settings, resolved plan, RNG count and start context (independent JSON fixtures, not real game packets).");

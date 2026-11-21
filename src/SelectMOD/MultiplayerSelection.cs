@@ -164,8 +164,9 @@ public static class MultiplayerSelection
             ModEntry.WriteLog("MP_READY_REQUIRED ascension changed; host must ready again");
             return false;
         }
-        // A normal character screen may start with no custom modifiers of its own.
-        if (!lobby.IsCustom && !models.OfType<SelectLobbySettings>().Any())
+        // The final packet needs the host's snapshot even if the native start
+        // supplied an empty list (ordinary start or an empty custom setup).
+        if (!models.OfType<SelectLobbySettings>().Any())
             models = models.Append(Marker(envelope)).ToList();
         var model = models.OfType<SelectLobbySettings>().SingleOrDefault();
         if (model == null || model.Read().Digest != envelope.Digest) throw new InvalidOperationException("SelectMOD: 開始時のホスト設定が一致しません。");
@@ -204,6 +205,24 @@ public static class MultiplayerSelection
         ModEntry.Reject(reason); Changed?.Invoke(lobby);
     }
     public static void Release(StartRunLobby lobby) { Sessions.Remove(lobby); Closed.Remove(lobby); Closed.Add(lobby, new object()); Changed?.Invoke(lobby); }
+    internal static void ApplyRunClassification(StartRunLobby lobby, RunState state)
+    {
+        if (!Supported(lobby) || !Sessions.TryGetValue(lobby, out var session) || !session.Starting ||
+            session.Failure != null || state.IsCustomGame == lobby.IsCustom) return;
+
+        // Set the stored flag before RunManager initializes the run, so the
+        // game's own achievement, history and save paths see the lobby's mode.
+        var setter = AccessTools.PropertySetter(typeof(RunState), nameof(RunState.IsCustomGame));
+        if (setter != null) setter.Invoke(state, [lobby.IsCustom]);
+        else
+        {
+            var field = AccessTools.DeclaredField(typeof(RunState), "<IsCustomGame>k__BackingField")
+                ?? throw new MissingMemberException(typeof(RunState).FullName, nameof(RunState.IsCustomGame));
+            field.SetValue(state, lobby.IsCustom);
+        }
+        if (state.IsCustomGame != lobby.IsCustom)
+            throw new InvalidOperationException("SelectMOD: ラン種別をロビーと一致させられませんでした。");
+    }
     public static object? Track(RunManager manager, RunState state)
     {
         if (!state.Modifiers.Any(m => m is SelectEncounterSettings or SelectAscensionSettings)) return null;

@@ -254,11 +254,12 @@ try
     selectiveGame.Manager.SavedSoloResult = delayed.Task;
     var previousLoad = selectiveGame.Manager.SetUpSavedSingleplayer(restoredAscension, stored);
     selectiveGame.Manager.CleanUp();
-    var allOff = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [], "seed", GameMode.Standard, true, 10);
+    var allOff = await selectiveGame.StartNewSingleplayerRun(player, true, acts, [foreignReward], "seed", GameMode.Standard, true, 10);
     delayed.SetException(new IOException("simulated old load failure"));
     try { await previousLoad; throw new Exception("lost load error"); } catch (IOException) { }
     Check(!selectiveGame.Manager.HasAscension(MegaCrit.Sts2.Core.Entities.Ascension.AscensionLevel.TightBelt), "late failed load cleared next run binding");
     Check(allOff.Modifiers.OfType<SelectAscensionSettings>().Single().Snapshot.Mask == 0 && !allOff.Acts.Last().GetRoomsDebug().HasSecondBoss, "A10 off/custom all-off");
+    Check(allOff.IsCustomGame && allOff.Modifiers.Contains(foreignReward), "solo custom classification or native modifier lost");
     selectiveGame.Manager.CleanUp();
     for (int mask = 0; mask <= AscensionSettings.All; mask++)
         for (int level = 0; level <= 10; level++)

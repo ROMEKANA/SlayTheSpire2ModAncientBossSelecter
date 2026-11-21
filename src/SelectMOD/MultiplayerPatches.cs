@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace SelectMOD;
@@ -20,6 +21,18 @@ internal static class MultiplayerEditPatch
 {
     private static void Prefix(StartRunLobby __instance, ref IReadOnlyCollection<ModifierModel> __0) => MultiplayerSelection.BeforeSetModifiers(__instance, ref __0);
     private static void Postfix(StartRunLobby __instance) { if (MultiplayerSelection.IsNetwork(__instance)) MultiplayerSelection.Notify(__instance); }
+}
+[HarmonyPatch(typeof(NCharacterSelectScreen), "ModifiersChanged")]
+internal static class StandardLobbyModifierNotificationPatch
+{
+    private static bool Prefix(NCharacterSelectScreen __instance)
+    {
+        // The character screen rejects native modifier changes. SelectMOD dispatches
+        // its own preview notifications independently of this screen callback.
+        var lobby = MultiplayerSelection.GetLobby(__instance);
+        return !MultiplayerSelection.IsNetwork(lobby) || lobby!.GameMode != GameMode.Standard ||
+            lobby.Modifiers.Count() != 1 || lobby.Modifiers.First() is not SelectLobbySettings;
+    }
 }
 [HarmonyPatch(typeof(StartRunLobby), nameof(StartRunLobby.InitializeFromMessage))]
 internal static class MultiplayerJoinPatch
@@ -90,7 +103,7 @@ internal static class MultiplayerStartPatch
             if (!ModEntry.IsActive || !__2 || __0.Count != __1.Players.Count || __0.Count is < 2 or > MultiplayerContract.MaxPlayers)
                 throw new InvalidOperationException("SelectMOD: 未対応のマルチ開始条件です。");
             __4 = MultiplayerSelection.Bind(__1, __3, __4, __0.Count, out __6, out __state);
-            var context = MultiplayerContract.Hash(EncounterRules.Encode(new { Seed = __5, Ascension = __6, Players = __0.Select(p => p.NetId).ToArray(), Acts = __3.Select(EncounterCatalog.Key).ToArray() }));
+            var context = MultiplayerContract.Hash(EncounterRules.Encode(new { Seed = __5, Ascension = __6, Custom = __1.IsCustom, Players = __0.Select(p => p.NetId).ToArray(), Acts = __3.Select(EncounterCatalog.Key).ToArray() }));
             ModEntry.WriteLog("MP_START_CONTEXT digest=" + context);
         }
         catch (Exception e) { ModEntry.WriteLog("MP_START_FAILED " + e); throw; }
